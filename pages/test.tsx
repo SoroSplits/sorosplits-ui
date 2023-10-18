@@ -1,8 +1,6 @@
 import { isAllowed, setAllowed, getUserInfo } from '@stellar/freighter-api'
 import { useEffect } from 'react'
 
-
-
 export default function Test() {
 
 
