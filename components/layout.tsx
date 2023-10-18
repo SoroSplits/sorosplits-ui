@@ -3,10 +3,10 @@ import Sidebar from "./sidebar"
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
-    <div>
-      <Sidebar />
-      <div>
-        <main>{children}</main>
+    <div className="flex justify-center">
+      <div className="container flex">
+        <Sidebar />
+        <main className="p-10">{children}</main>
       </div>
     </div>
   )
