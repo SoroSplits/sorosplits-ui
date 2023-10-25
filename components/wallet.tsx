@@ -20,7 +20,7 @@ const Wallet = ({ isConnected, walletAddress, toggleButton }: WalletProps) => {
     <>
       {isConnected ? (
         <div className="flex items-center gap-2">
-          <div className="w-[140px] h-10 flex items-center justify-center py-2 px-4 rounded-lg text-sm border-2 border-accent border-opacity-10 cursor-pointer opacity-90 hover:bg-background-dark">
+          <div className="w-[140px] h-10 flex items-center justify-center py-2 px-4 rounded-lg text-sm border-2 border-accent border-opacity-30 cursor-pointer opacity-90 hover:bg-background-dark">
             {displayFirstLastChars}
           </div>
           <button onClick={toggleButton}>
