@@ -34,13 +34,15 @@ const Sidebar = () => {
 
   return (
     <div className="min-h-screen h-full w-64 border-r-[1px] border-background-dark flex flex-col items-center justify-start py-6 px-0 gap-2">
-      <Image
-        src="/logo.jpg"
-        alt="SoroSplits"
-        width={150}
-        height={150}
-        className="rounded-full mb-6"
-      />
+      <Link href="/">
+        <Image
+          src="/logo.jpg"
+          alt="SoroSplits"
+          width={150}
+          height={150}
+          className="rounded-full mb-6"
+        />
+      </Link>
 
       <Wallet
         isConnected={isConnected}

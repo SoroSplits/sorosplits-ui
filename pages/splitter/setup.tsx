@@ -57,10 +57,10 @@ export default function SetupSplitter() {
   return (
     <div className="flex flex-col w-full">
       <h1 className="text-[64px] font-bold">Setup Splitter</h1>
+      <p>Enter addresses and their shares to setup your splitter.</p>
+      <br />
 
-      <h3>Enter addresses and their shares to setup your splitter.</h3>
-
-      <div className="flex flex-col gap-3 mt-8">
+      <div className="flex flex-col gap-3">
         {data.map((item, idx) => {
           return (
             <div key={idx} className="flex gap-4">
