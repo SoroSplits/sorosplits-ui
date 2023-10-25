@@ -33,7 +33,7 @@ const Sidebar = () => {
   }
 
   return (
-    <div className="h-screen w-64 border-r-[1px] border-background-dark flex flex-col items-center justify-start py-6 px-0 gap-2">
+    <div className="min-h-screen h-full w-64 border-r-[1px] border-background-dark flex flex-col items-center justify-start py-6 px-0 gap-2">
       <Image
         src="/logo.jpg"
         alt="SoroSplits"
