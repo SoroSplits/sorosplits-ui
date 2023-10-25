@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react"
-import { isConnected, isAllowed, getUserInfo } from "@stellar/freighter-api"
+import { isConnected, isAllowed, getUserInfo, signTransaction } from "@stellar/freighter-api"
 import { Contract, networks, ShareDataKey } from "sorosplits-splitter"
 import { randomBytes } from "crypto"
 
-const SorobanClient = require("soroban-client")
-import { Operation, Address, xdr } from "stellar-base"
+import {
+  Account,
+  Address,
+  Asset,
+  Memo,
+  Operation,
+  Server,
+  SorobanRpc,
+  TimeoutInfinite,
+  Transaction,
+  TransactionBuilder,
+  xdr,
+} from "soroban-client"
 
 const useContract = () => {
   const [contract, setContract] = useState<Contract>()
@@ -27,7 +38,7 @@ const useContract = () => {
   }
 
   const deploy = async () => {
-    const server = new SorobanClient.Server("https://rpc-futurenet.stellar.org")
+    const server = new Server("https://rpc-futurenet.stellar.org")
     const userInfo = await getUserInfo()
 
     const account = await server.getAccount(userInfo.publicKey)
@@ -37,7 +48,7 @@ const useContract = () => {
         contractIdPreimage:
           xdr.ContractIdPreimage.contractIdPreimageFromAddress(
             new xdr.ContractIdPreimageFromAddress({
-              address: Address.fromString(account._accountId).toScAddress(),
+              address: Address.fromString(account.accountId()).toScAddress(),
               salt: randomBytes(32),
             })
           ),
@@ -52,8 +63,8 @@ const useContract = () => {
 
     // console.log(func.toXDR('base64'))
 
-    let txBuilder = new SorobanClient.TransactionBuilder(account, {
-      fee: '10000',
+    let txBuilder = new TransactionBuilder(account, {
+      fee: "10000",
       networkPassphrase: "Test SDF Future Network ; October 2022",
       // networkPassphrase: "Test SDF Network ; September 2015",
     })
@@ -62,19 +73,21 @@ const useContract = () => {
       func,
       auth: [],
     })
-  
-    // console.log(operation.toXDR('base64'))
-  
+
     txBuilder.addOperation(operation)
     txBuilder.setTimeout(10)
-    
+
     let transaction = txBuilder.build()
-    // console.log(JSON.stringify(transaction))
 
-    console.log(transaction.toXDR())
+    await server.prepareTransaction(transaction)
 
-    // let response = await server.simulateTransaction(transaction)
-    // console.log(response)
+    let res = await signTransaction(transaction.toXDR())
+    console.log(res)
+
+    let tx = TransactionBuilder.fromXDR(res, "Test SDF Future Network ; October 2022")
+
+    let str = await server.sendTransaction(tx)
+    console.log(str)
   }
 
   const init = async (admin: string, shares: ShareDataKey[]) => {
@@ -156,11 +169,8 @@ const useContract = () => {
     await checkFreighterConnection()
 
     const res = await contract.listShares()
-    if (res.isOk()) {
-      console.log(res.unwrap())
-    } else {
-      console.log(res.unwrapErr())
-    }
+    if (res.isOk()) return res.unwrap() 
+    else throw new Error(res.unwrapErr().message)
   }
 
   const getConfig = async () => {
@@ -168,11 +178,8 @@ const useContract = () => {
     await checkFreighterConnection()
 
     const res = await contract.getConfig()
-    if (res.isOk()) {
-      console.log(res.unwrap())
-    } else {
-      console.log(res.unwrapErr())
-    }
+    if (res.isOk()) return res.unwrap() 
+    else throw new Error(res.unwrapErr().message)
   }
 
   return {
