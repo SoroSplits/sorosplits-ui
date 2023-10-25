@@ -49,11 +49,11 @@ const Sidebar = () => {
       />
 
       <Link href="/splitter/setup">
-        <Button text="Setup Splitter" onClick={() => {}} type="primary" />
+        <Button text="Setup Splitter" onClick={() => {}} type="outline" />
       </Link>
 
       <Link href="/splitter/search">
-        <Button text="Search Splitter" onClick={() => {}} type="primary" />
+        <Button text="Search Splitter" onClick={() => {}} type="outline" />
       </Link>
     </div>
   )

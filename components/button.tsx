@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { clsx } from 'clsx'
 
-type ButtonType = "wallet" | "primary" | "secondary"
+type ButtonType = "wallet" | "primary" | "secondary" | "outline"
 
 interface ButtonProps {
   text: string
@@ -17,7 +17,9 @@ const Button = ({ text, onClick, type }: ButtonProps) => {
       case "primary":
         return "bg-primary text-text hover:bg-primary-dark"
       case "secondary":
-        return "bg-secondary text-text"
+        return "bg-secondary"
+      case "outline":
+        return "bg-transparent border-2 border-background-dark hover:bg-background-dark"
     }
   }, [type])
 
