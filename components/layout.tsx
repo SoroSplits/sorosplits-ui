@@ -6,7 +6,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
     <div className="flex justify-center">
       <div className="container flex">
         <Sidebar />
-        <main className="p-10">{children}</main>
+        <main className="px-12 py-6 w-full">{children}</main>
       </div>
     </div>
   )
