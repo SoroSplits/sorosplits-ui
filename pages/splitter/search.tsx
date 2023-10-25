@@ -1,23 +1,56 @@
 import { useState } from "react"
 import { debounce } from "../../hooks/debounce"
+import Input from "../../components/input"
+import useContract from "../../hooks/contract"
+import { ConfigDataKey, ShareDataKey } from 'sorosplits-splitter'
 
 export default function SearchSplitter() {
-  const [contractAddress, setContractAddress] = useState("")
 
-  const searchContract = debounce(async (searchTerm: string) => {}, 1000)
+  const { listShares, getConfig } = useContract()
+
+  const [contractAddress, setContractAddress] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const [contractConfig, setContractConfig] = useState<ConfigDataKey>()
+  const [contractShares, setContractShares] = useState<ShareDataKey[]>()
+
+  const searchContract = debounce(async (searchTerm: string) => {
+    if (searchTerm === "") return
+    fetchContractData()
+  }, 1000)
+
+  const fetchContractData = async () => {
+    let results = await Promise.all([getConfig(), listShares()]).catch(err=>console.log(err))  
+
+    if (results) {
+      setContractConfig(results[0])
+      setContractShares(results[1])
+    }
+  }
+
+  const searchOnChange = (value: string) => {
+    setContractAddress(value)
+    searchContract(value)
+  }
 
   return (
-    <div>
-      <h1 className="text-5xl">Search Splitter</h1>
-
+    <div className="flex flex-col w-full">
+      <h1 className="text-[64px] font-bold">Setup Splitter</h1>
+      <p>Enter addresses and their shares to setup your splitter.</p>
       <br />
 
-      <input
-        className="w-96 h-10 flex items-center justify-center py-2 px-4 rounded-lg border-[1px] border-[#d2d2d2]"
-        type="text"
-        onChange={(e) => searchContract(e.target.value)}
-        placeholder="Splitter address"
-      />
+      <div className="flex">
+        <Input
+          placeholder="Enter Splitter address"
+          onChange={searchOnChange}
+          value={contractAddress}
+        />
+      </div>
+
+
+      <div>
+        Admin: {contractConfig?.admin.toString()}
+      </div>
     </div>
   )
 }
