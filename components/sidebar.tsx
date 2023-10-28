@@ -1,9 +1,10 @@
 import { isAllowed, setAllowed, getUserInfo } from "@stellar/freighter-api"
 import Button from "./button"
 import { useState } from "react"
-import Wallet from "./wallet"
+import Wallet from "./Wallet"
 import Link from "next/link"
 import Image from "next/image"
+import toast from "react-hot-toast"
 
 const Sidebar = () => {
   const [isConnected, setIsConnected] = useState(false)
@@ -23,7 +24,7 @@ const Sidebar = () => {
         const info = await getUserInfo()
 
         if (info.publicKey === "") {
-          alert("Please unlock your wallet")
+          return toast.error("Please unlock your wallet")
         }
 
         setWalletAddress(info.publicKey)
@@ -40,7 +41,7 @@ const Sidebar = () => {
           alt="SoroSplits"
           width={150}
           height={150}
-          className="rounded-full mb-6"
+          className="rounded-full mb-6 hover:opacity-90"
         />
       </Link>
 
