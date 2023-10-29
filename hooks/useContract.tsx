@@ -40,7 +40,13 @@ type ContractMethod =
   | "update_shares"
   | "lock_contract"
 
-type QueryMethod = "list_shares" | "get_config"
+type QueryMethod =
+  | "list_shares"
+  | "get_config"
+  | "get_token_balance"
+  | "get_token_decimal"
+  | "get_token_name"
+  | "get_token_symbol"
 
 interface CallContractArgs<T extends ContractMethod> {
   contractId: string
@@ -62,20 +68,50 @@ type MethodArgs<T extends ContractMethod> = T extends "init"
   ? {}
   : never
 
-interface QueryContractArgs {
+interface QueryContractArgs<T extends QueryMethod> {
   contractId: string
   method: QueryMethod
+  args: QueryArgs<T>
 }
+
+type QueryArgs<T extends QueryMethod> = T extends "list_shares"
+  ? {}
+  : T extends "get_config"
+  ? {}
+  : T extends "get_token_balance"
+  ? { id: string }
+  : T extends "get_token_decimal"
+  ? {}
+  : T extends "get_token_name"
+  ? {}
+  : T extends "get_token_symbol"
+  ? {}
+  : never
 
 export interface ContractConfigResult {
   admin: string
   mutable: boolean
 }
 
+export interface TokenResult {
+  name: string
+  symbol: string
+  balance: BigInt
+  decimals: number
+}
+
 type QueryContractResult<T extends QueryMethod> = T extends "get_config"
   ? ContractConfigResult
   : T extends "list_shares"
   ? DataProps[]
+  : T extends "get_token_balance"
+  ? BigInt
+  : T extends "get_token_decimal"
+  ? number
+  : T extends "get_token_name"
+  ? string
+  : T extends "get_token_symbol"
+  ? string
   : never
 
 const useContract = () => {
@@ -223,27 +259,11 @@ const useContract = () => {
     )
   }
 
-  const distributeTokens = async (tokenAddress: string) => {
-    await checkFreighterConnection()
-
-    // const res = await contract.distributeTokens({
-    //   token_address: Address.fromString(tokenAddress),
-    // })
-    // if (res.isErr()) throw new Error(res.unwrapErr().message)
-  }
-
-  const updateShares = async (contractId: string, shares: DataProps[]) => {
-    await checkFreighterConnection()
-    // const contract = getContract(contractId)
-
-    // const res = await contract.updateShares({ shares })
-    // if (res.isErr()) throw new Error(res.unwrapErr().message)
-  }
-
   const queryContract = async <T extends QueryMethod>({
     contractId,
     method,
-  }: QueryContractArgs): Promise<QueryContractResult<T>> => {
+    args,
+  }: QueryContractArgs<T>): Promise<QueryContractResult<T>> => {
     const server = new Server(RPC_URL)
     const userInfo = await getUserInfo()
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
@@ -253,10 +273,26 @@ const useContract = () => {
 
     switch (method) {
       case "list_shares":
-        operation = contract.call(method, ...[])
+        operation = contract.call(method)
         break
       case "get_config":
-        operation = contract.call(method, ...[])
+        operation = contract.call(method)
+        break
+      case "get_token_balance":
+        const balanceArgs = args as QueryArgs<"get_token_balance">
+        operation = contract.call(
+          "balance",
+          ...[new Address(balanceArgs.id).toScVal()]
+        )
+        break
+      case "get_token_decimal":
+        operation = contract.call("decimals")
+        break
+      case "get_token_name":
+        operation = contract.call("name")
+        break
+      case "get_token_symbol":
+        operation = contract.call("symbol")
         break
       default:
         throw new Error("Invalid query method")
