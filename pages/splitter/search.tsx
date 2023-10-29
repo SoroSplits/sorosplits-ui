@@ -10,9 +10,11 @@ import PageHeader from "../../components/PageHeader"
 import { useRouter } from "next/router"
 import checkSplitterData from "../../utils/checkSplitterData"
 import { Address } from "soroban-client"
+import useAppStore from "../../store"
 
 export default function SearchSplitter() {
   const { query } = useRouter()
+  const { loading, setLoading } = useAppStore()
 
   const [contractAddress, setContractAddress] = useState("")
   const { callContract, queryContract } = useContract()
@@ -63,10 +65,13 @@ export default function SearchSplitter() {
     }, 1000)
 
     return () => clearTimeout(fetchContractData)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractAddress])
 
   const lockSplitter = async () => {
     try {
+      setLoading(true)
+
       loadingToast("Locking Splitter...")
 
       await callContract({
@@ -75,21 +80,24 @@ export default function SearchSplitter() {
         args: {},
       })
 
+      setLoading(false)
       successToast("Splitter locked!")
 
       setContractConfig(Object.assign({}, contractConfig, { mutable: false }))
     } catch (error: any) {
+      setLoading(false)
       errorToast(error)
     }
   }
 
   const updateSplitter = async () => {
     try {
-      loadingToast("Updating Splitter shareholders and shares...")
+      setLoading(true)
 
       if (!contractShares) return
-
       checkSplitterData(contractShares)
+
+      loadingToast("Updating Splitter shareholders and shares...")
 
       const shares = contractShares.map((item) => {
         return {
@@ -106,8 +114,10 @@ export default function SearchSplitter() {
         },
       })
 
+      setLoading(false)
       successToast("Shareholders and shares updated successfully!")
     } catch (error: any) {
+      setLoading(false)
       errorToast(error)
     }
   }
@@ -124,6 +134,7 @@ export default function SearchSplitter() {
           placeholder="Enter Splitter address"
           onChange={setContractAddress}
           value={contractAddress}
+          disabled={loading}
         />
       </div>
 
@@ -154,6 +165,7 @@ export default function SearchSplitter() {
                   text="Lock Splitter"
                   onClick={lockSplitter}
                   type="primary"
+                  loading={loading}
                 />
               </>
             ) : (
@@ -172,6 +184,7 @@ export default function SearchSplitter() {
             <SplitterData
               initialData={contractShares}
               updateData={setContractShares}
+              locked={loading}
             />
 
             <div className="h-8" />
@@ -180,6 +193,7 @@ export default function SearchSplitter() {
               text="Update Splitter"
               onClick={updateSplitter}
               type="primary"
+              loading={loading}
             />
           </div>
         )}

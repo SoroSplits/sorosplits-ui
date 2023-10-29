@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { clsx } from 'clsx'
+import { clsx } from "clsx"
 
 type ButtonType = "wallet" | "primary" | "secondary" | "outline"
 
@@ -7,9 +7,10 @@ interface ButtonProps {
   text: string
   onClick: () => void
   type: ButtonType
+  loading?: boolean
 }
 
-const Button = ({ text, onClick, type }: ButtonProps) => {
+const Button = ({ text, onClick, type, loading }: ButtonProps) => {
   const buttonColor = useMemo(() => {
     switch (type) {
       case "wallet":
@@ -27,14 +28,13 @@ const Button = ({ text, onClick, type }: ButtonProps) => {
     <button
       className={clsx(
         "button w-40 h-9 flex items-center justify-center py-2 px-4 rounded-lg",
-        "",
         buttonColor,
+        loading && "opacity-50"
       )}
       onClick={onClick}
+      disabled={loading}
     >
-      <span className="text-sm">
-        {text}
-      </span>
+      <span className="text-sm">{text}</span>
     </button>
   )
 }

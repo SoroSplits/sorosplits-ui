@@ -54,6 +54,7 @@ const Input = ({
           suffix="%"
           placeholder="0.00"
           onValueChange={numericChange}
+          disabled={disabled}
         />
       ) : (
         <input

@@ -11,19 +11,23 @@ import { Address } from "soroban-client"
 import { useRouter } from "next/router"
 import checkSplitterData from "../../utils/checkSplitterData"
 import { errorToast, loadingToast, successToast } from "../../utils/toast"
+import useAppStore from "../../store"
 
 export default function SetupSplitter() {
   const { push } = useRouter()
   const { deploy, callContract } = useContract()
+  const { loading, setLoading } = useAppStore()
 
   const [data, setData] = useState<DataProps[]>(INITIAL_DATA)
   const [mutable, setMutable] = useState<boolean>(false)
 
   const createSplitter = async () => {
     try {
-      loadingToast("Deploying Splitter contract on blockchain...")
-
+      setLoading(true)
+      
       checkSplitterData(data)
+
+      loadingToast("Deploying Splitter contract on blockchain...")
 
       const shares = data.map((item) => {
         return {
@@ -48,6 +52,7 @@ export default function SetupSplitter() {
         },
       })
 
+      setLoading(false)
       successToast(
         "Splitter contract initialized successfully! Navigating to contract page..."
       )
@@ -56,6 +61,7 @@ export default function SetupSplitter() {
         push(`/splitter/search?contractId=${contractId}`)
       }, 2000)
     } catch (error: any) {
+      setLoading(false)
       errorToast(error)
     }
   }
@@ -73,18 +79,24 @@ export default function SetupSplitter() {
       <br />
 
       <div className="flex flex-col gap-8">
-        <SplitterData initialData={data} updateData={setData} />
+        <SplitterData
+          initialData={data}
+          updateData={setData}
+          locked={loading}
+        />
 
         <Switch
           initialState={false}
           onChange={setMutable}
           text="Allow updating shareholders and shares in the future?"
+          locked={loading}
         />
 
         <Button
           text="Create Splitter"
           onClick={createSplitter}
           type="primary"
+          loading={loading}
         />
       </div>
     </div>

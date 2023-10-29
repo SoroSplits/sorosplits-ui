@@ -6,6 +6,9 @@ interface AppState {
 
   walletAddress: string | null
   setWalletAddress: (value: string) => void
+
+  loading: boolean
+  setLoading: (value: boolean) => void
 }
 
 const useAppStore = create<AppState>()((set) => ({
@@ -13,8 +16,10 @@ const useAppStore = create<AppState>()((set) => ({
   setIsConnected: (value: boolean) => set(() => ({ isConnected: value })),
 
   walletAddress: null,
-  setWalletAddress: (value: string) =>
-    set(() => ({ walletAddress: value })),
+  setWalletAddress: (value: string) => set(() => ({ walletAddress: value })),
+
+  loading: false,
+  setLoading: (value: boolean) => set(() => ({ loading: value })),
 }))
 
 export default useAppStore

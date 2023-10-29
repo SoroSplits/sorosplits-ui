@@ -2,6 +2,7 @@ import { useState } from "react"
 import Input from "./Input"
 import { CgClose } from "react-icons/cg"
 import { AiOutlineUserAdd } from "react-icons/ai"
+import clsx from "clsx"
 
 interface DataProps {
   share: number
@@ -100,15 +101,17 @@ const SplitterData = ({
         })}
       </div>
 
-      {!locked && (
-        <button
-          className="flex items-center justify-between px-4 py-1 text-sm w-[110px] bg-secondary hover:bg-secondary-dark mt-4 rounded-md"
-          onClick={addData}
-        >
-          <AiOutlineUserAdd size={16} />
-          Add User
-        </button>
-      )}
+      <button
+        className={clsx(
+          "flex items-center justify-between px-4 py-1 text-sm w-[110px] bg-secondary hover:bg-secondary-dark mt-4 rounded-md",
+          locked && "opacity-50"
+        )}
+        onClick={addData}
+        disabled={locked}
+      >
+        <AiOutlineUserAdd size={16} />
+        Add User
+      </button>
     </div>
   )
 }
