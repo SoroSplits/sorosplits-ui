@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
 import Input from "../../components/Input"
-import useContract, { ContractConfigResult } from "../../hooks/useContract"
+import useContract, {
+  ContractConfigResult,
+  TokenResult,
+} from "../../hooks/useContract"
 import { loadingToast, successToast, errorToast } from "../../utils/toast"
 import SplitterData, { DataProps } from "../../components/SplitterData"
 import Button from "../../components/Button"
@@ -14,13 +17,16 @@ import useAppStore from "../../store"
 
 export default function SearchSplitter() {
   const { query } = useRouter()
+  const { callContract, queryContract } = useContract()
   const { loading, setLoading } = useAppStore()
 
+  const [tokenAddress, setTokenAddress] = useState("")
   const [contractAddress, setContractAddress] = useState("")
-  const { callContract, queryContract } = useContract()
 
   const [contractConfig, setContractConfig] = useState<ContractConfigResult>()
   const [contractShares, setContractShares] = useState<DataProps[]>()
+
+  const [tokenInfo, setTokenInfo] = useState<TokenResult>()
 
   useEffect(() => {
     if (query.contractId) {
@@ -40,9 +46,19 @@ export default function SearchSplitter() {
         loadingToast("Searching for Splitter contract...")
 
         let results = await Promise.all([
-          queryContract({ contractId: contractAddress, method: "get_config" }),
-          queryContract({ contractId: contractAddress, method: "list_shares" }),
-        ]).catch(errorToast)
+          queryContract({
+            contractId: contractAddress,
+            method: "get_config",
+            args: {},
+          }),
+          queryContract({
+            contractId: contractAddress,
+            method: "list_shares",
+            args: {},
+          }),
+        ]).catch((error) => {
+          throw new Error(error)
+        })
 
         if (results) {
           successToast("Found Splitter contract!")
@@ -60,6 +76,8 @@ export default function SearchSplitter() {
           setContractShares(shareData)
         }
       } catch (error: any) {
+        setContractConfig(undefined)
+        setContractShares(undefined)
         errorToast(error)
       }
     }, 1000)
@@ -67,6 +85,65 @@ export default function SearchSplitter() {
     return () => clearTimeout(fetchContractData)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractAddress])
+
+  useEffect(() => {
+    const fetchTokenBalance = setTimeout(async () => {
+      try {
+        if (tokenAddress === "") {
+          setTokenInfo(undefined)
+          return
+        }
+
+        loadingToast("Fetching token information...")
+
+        let results = await Promise.all([
+          queryContract({
+            contractId: tokenAddress,
+            method: "get_token_name",
+            args: {},
+          }),
+          queryContract({
+            contractId: tokenAddress,
+            method: "get_token_symbol",
+            args: {},
+          }),
+          queryContract({
+            contractId: tokenAddress,
+            method: "get_token_decimal",
+            args: {},
+          }),
+          queryContract({
+            contractId: tokenAddress,
+            method: "get_token_balance",
+            args: { id: contractAddress },
+          }),
+        ]).catch((error) => {
+          throw new Error(error)
+        })
+
+        if (results) {
+          successToast(`Token information fetched!`)
+
+          let name = results[0] as string
+          let symbol = results[1] as string
+          let decimals = results[2] as number
+          let balance = results[3] as BigInt
+
+          setTokenInfo({
+            name,
+            symbol,
+            decimals,
+            balance,
+          })
+        }
+      } catch (error: any) {
+        setTokenInfo(undefined)
+        errorToast(error)
+      }
+    })
+
+    return () => clearTimeout(fetchTokenBalance)
+  }, [tokenAddress])
 
   const lockSplitter = async () => {
     try {
@@ -121,6 +198,8 @@ export default function SearchSplitter() {
       errorToast(error)
     }
   }
+
+  const distributeTokens = async () => {}
 
   return (
     <div className="flex flex-col w-full">
@@ -179,7 +258,7 @@ export default function SearchSplitter() {
 
         {contractShares && (
           <div>
-            <h3 className="text-xl font-bold mb-2">Shareholders & Shares:</h3>
+            <h3 className="text-xl font-bold mb-2">Shareholders & Shares</h3>
 
             <SplitterData
               initialData={contractShares}
@@ -188,13 +267,59 @@ export default function SearchSplitter() {
             />
 
             <div className="h-8" />
-
             <Button
               text="Update Splitter"
               onClick={updateSplitter}
               type="primary"
               loading={loading || !contractConfig?.mutable}
             />
+          </div>
+        )}
+
+        {contractConfig && (
+          <div>
+            <h3 className="text-xl font-bold mb-2">Token Distribution</h3>
+            <p className="mb-2">
+              Search for a token address to distribute tokens to shareholders.
+            </p>
+
+            <div className="flex">
+              <Input
+                placeholder="Enter token address"
+                onChange={setTokenAddress}
+                value={tokenAddress}
+              />
+            </div>
+
+            {tokenInfo && (
+              <div className="flex flex-col gap-4 mt-4">
+                <div>
+                  <h3 className="text-lg font-bold">Token Name</h3>
+                  <p>{tokenInfo.name}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold">Splitter Balance</h3>
+                  <p>
+                    {Number(tokenInfo.balance) /
+                      Math.pow(10, tokenInfo.decimals)}{" "}
+                    {tokenInfo.symbol}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {tokenInfo && (
+              <>
+                <div className="h-8" />
+                <Button
+                  text="Distribute Tokens"
+                  onClick={distributeTokens}
+                  type="primary"
+                  loading={loading || Number(tokenInfo.balance) === 0}
+                />
+              </>
+            )}
           </div>
         )}
       </div>
