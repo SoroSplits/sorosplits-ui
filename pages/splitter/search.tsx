@@ -33,7 +33,7 @@ export default function SearchSplitter() {
           return
         }
         toast.loading("Searching for Splitter contract...")
-  
+
         let results = await Promise.all([
           queryContract({ contractId: contractAddress, method: "get_config" }),
           queryContract({ contractId: contractAddress, method: "list_shares" }),
@@ -41,14 +41,14 @@ export default function SearchSplitter() {
           toast.dismiss()
           toast.error(err.message)
         })
-  
+
         if (results) {
           toast.dismiss()
           toast.success("Found Splitter contract!")
-  
+
           let config = results[0] as ContractConfigResult
           setContractConfig(config)
-  
+
           let shares = results[1] as DataProps[]
           let shareData = shares.map((item) => {
             return {
@@ -60,7 +60,8 @@ export default function SearchSplitter() {
         }
       } catch (error: any) {
         toast.dismiss()
-        toast.error(error.message)
+        if (error.message) toast.error(error.message)
+        else toast.error(error)
       }
     }, 1000)
 
@@ -83,7 +84,8 @@ export default function SearchSplitter() {
       setContractConfig(Object.assign({}, contractConfig, { mutable: false }))
     } catch (error: any) {
       toast.dismiss()
-      toast.error(error.message)
+      if (error.message) toast.error(error.message)
+      else toast.error(error)
     }
   }
 
@@ -96,8 +98,6 @@ export default function SearchSplitter() {
         subtitle="Search for a Splitter contract by entering the contract address below."
       />
 
-      <div>CCWP5OGFXQHC2VEORHRGAN6KDWRHHLBF55WPMQCE4TRRTSJ56HRVSYLA</div>
-
       <div className="flex mb-6">
         <Input
           placeholder="Enter Splitter address"
@@ -106,61 +106,63 @@ export default function SearchSplitter() {
         />
       </div>
 
-      {contractConfig && (
-        <div className="mb-6">
-          <h3 className="text-xl font-bold mb-2">Contract Admin</h3>
-          <Link
-            href={`https://futurenet.stellarchain.io/accounts/${contractConfig.admin.toString()}`}
-            target="_blank"
-            className="flex items-center gap-2 underline hover:text-accent"
-          >
-            {contractConfig.admin.toString()}
-            <TbExternalLink size={16} />
-          </Link>
-        </div>
-      )}
+      <div className="flex flex-col gap-6">
+        {contractConfig && (
+          <div>
+            <h3 className="text-xl font-bold mb-2">Contract Admin</h3>
+            <Link
+              href={`https://futurenet.stellarchain.io/accounts/${contractConfig.admin.toString()}`}
+              target="_blank"
+              className="flex items-center gap-2 underline hover:text-accent"
+            >
+              {contractConfig.admin.toString()}
+              <TbExternalLink size={16} />
+            </Link>
+          </div>
+        )}
 
-      {contractConfig && (
-        <div className="mb-6">
-          <h3 className="text-xl font-bold mb-2">Contract State</h3>
-          {contractConfig.mutable ? (
-            <>
-              <p className="mb-4">
-                Contract is mutable. Shareholders and shares can be updated.
+        {contractConfig && (
+          <div>
+            <h3 className="text-xl font-bold mb-2">Contract State</h3>
+            {contractConfig.mutable ? (
+              <>
+                <p className="mb-4">
+                  Contract is mutable. Shareholders and shares can be updated.
+                </p>
+                <Button
+                  text="Lock Splitter"
+                  onClick={lockSplitter}
+                  type="primary"
+                />
+              </>
+            ) : (
+              <p>
+                Contract is immutable. Shareholders and shares are locked for
+                updates.
               </p>
-              <Button
-                text="Lock Splitter"
-                onClick={lockSplitter}
-                type="primary"
-              />
-            </>
-          ) : (
-            <p>
-              Contract is immutable. Shareholders and shares are locked for
-              updates.
-            </p>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {contractShares && (
-        <div>
-          <h3 className="text-xl font-bold mb-2">Shareholders & Shares:</h3>
+        {contractShares && (
+          <div>
+            <h3 className="text-xl font-bold mb-2">Shareholders & Shares:</h3>
 
-          <SplitterData
-            initialData={contractShares}
-            updateData={setContractShares}
-          />
+            <SplitterData
+              initialData={contractShares}
+              updateData={setContractShares}
+            />
 
-          <div className="h-8" />
+            <div className="h-8" />
 
-          <Button
-            text="Update Splitter"
-            onClick={updateSplitter}
-            type="primary"
-          />
-        </div>
-      )}
+            <Button
+              text="Update Splitter"
+              onClick={updateSplitter}
+              type="primary"
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
