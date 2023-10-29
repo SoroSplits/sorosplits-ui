@@ -72,7 +72,7 @@ export default function SearchSplitter() {
     try {
       setLoading(true)
 
-      loadingToast("Locking Splitter...")
+      loadingToast("Locking Splitter for updates...")
 
       await callContract({
         contractId: contractAddress,
@@ -184,7 +184,7 @@ export default function SearchSplitter() {
             <SplitterData
               initialData={contractShares}
               updateData={setContractShares}
-              locked={loading}
+              locked={loading || !contractConfig?.mutable}
             />
 
             <div className="h-8" />
@@ -193,7 +193,7 @@ export default function SearchSplitter() {
               text="Update Splitter"
               onClick={updateSplitter}
               type="primary"
-              loading={loading}
+              loading={loading || !contractConfig?.mutable}
             />
           </div>
         )}
