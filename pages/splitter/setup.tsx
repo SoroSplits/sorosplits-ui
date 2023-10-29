@@ -5,6 +5,7 @@ import SplitterData, {
   INITIAL_DATA,
 } from "../../components/SplitterData"
 import PageHeader from "../../components/PageHeader"
+import Switch from "../../components/Switch"
 import useContract from "../../hooks/useContract"
 import { Address } from "soroban-client"
 import toast from "react-hot-toast"
@@ -15,6 +16,7 @@ export default function SetupSplitter() {
   const { deploy, callContract } = useContract()
 
   const [data, setData] = useState<DataProps[]>(INITIAL_DATA)
+  const [mutable, setMutable] = useState<boolean>(false)
 
   const createSplitter = async () => {
     try {
@@ -38,6 +40,7 @@ export default function SetupSplitter() {
         method: "init",
         args: {
           shares,
+          mutable,
         },
       })
 
@@ -51,7 +54,8 @@ export default function SetupSplitter() {
       }, 2000)
     } catch (error: any) {
       toast.dismiss()
-      toast.error(error.message)
+      if (error.message) toast.error(error.message)
+      else toast.error(error)
     }
   }
 
@@ -67,11 +71,21 @@ export default function SetupSplitter() {
       <div>GB6NVEN5HSUBKMYCE5ZOWSK5K23TBWRUQLZY3KNMXUZ3AQ2ESC4MY4AQ</div>
       <br />
 
-      <SplitterData initialData={data} updateData={setData} />
+      <div className="flex flex-col gap-8">
+        <SplitterData initialData={data} updateData={setData} />
 
-      <div className="h-8" />
+        <Switch
+          initialState={false}
+          onChange={setMutable}
+          text="Allow updating shareholders and shares in the future?"
+        />
 
-      <Button text="Create Splitter" onClick={createSplitter} type="primary" />
+        <Button
+          text="Create Splitter"
+          onClick={createSplitter}
+          type="primary"
+        />
+      </div>
     </div>
   )
 }

@@ -1,7 +1,4 @@
-import {
-  getUserInfo,
-  signTransaction,
-} from "@stellar/freighter-api"
+import { getUserInfo, signTransaction } from "@stellar/freighter-api"
 import { randomBytes } from "crypto"
 import {
   Address,
@@ -30,6 +27,13 @@ const FUTURENET_NETWORK_PASSPHRASE = "Test SDF Future Network ; October 2022"
 const TESTNET_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 const NETWORK_PASSPHRASE = FUTURENET_NETWORK_PASSPHRASE
 
+const FUTURENET_NETWORK = "futurenet"
+const TESTNET_NETWORK = "testnet"
+const NETWORK = FUTURENET_NETWORK
+
+const WASM_HASH =
+  "d743d91093fc8dfbc59db3395f70bafa0a61ea46bd21d206e52b3d4822ea5c5d"
+
 type ContractMethod =
   | "init"
   | "distributeTokens"
@@ -48,6 +52,7 @@ type MethodArgs<T extends ContractMethod> = T extends "init"
   ? {
       admin: string
       shares: DataProps[]
+      mutable: boolean
     }
   : T extends "distributeTokens"
   ? { token_address: string }
@@ -112,12 +117,7 @@ const useContract = () => {
     const createContract = new xdr.CreateContractArgs({
       contractIdPreimage: contractIdPreimage,
       executable: xdr.ContractExecutable.contractExecutableWasm(
-        Buffer.from(
-          ba.unhexlify(
-            "b053248d579b13717ea635c70727658eb8fee731c01f658152ddc72a1035e246"
-          ),
-          "ascii"
-        )
+        Buffer.from(ba.unhexlify(WASM_HASH), "ascii")
       ),
     })
 
@@ -134,14 +134,11 @@ const useContract = () => {
       .build()
     let preparedTx = (await server.prepareTransaction(tx)) as Transaction
     let signedTx = await signTransaction(preparedTx.toXDR(), {
-      network: "futurenet",
+      network: NETWORK,
       networkPassphrase: NETWORK_PASSPHRASE,
       accountToSign: userInfo.publicKey,
     })
-    let transaction = TransactionBuilder.fromXDR(
-      signedTx,
-      NETWORK_PASSPHRASE
-    )
+    let transaction = TransactionBuilder.fromXDR(signedTx, NETWORK_PASSPHRASE)
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
@@ -176,7 +173,8 @@ const useContract = () => {
 
   const initOP = (
     contract: Contract,
-    shares: DataProps[]
+    shares: DataProps[],
+    mutable: boolean
   ) => {
     return contract.call(
       "init",
@@ -197,6 +195,7 @@ const useContract = () => {
             ])
           })
         ),
+        xdr.ScVal.scvBool(mutable),
       ]
     )
   }
@@ -274,8 +273,8 @@ const useContract = () => {
 
     switch (method) {
       case "init":
-        const { shares } = args as MethodArgs<"init">
-        operation = initOP(contract, shares)
+        const { shares, mutable } = args as MethodArgs<"init">
+        operation = initOP(contract, shares, mutable)
         break
       case "lock_contract":
         operation = contract.call(method, ...[])
@@ -290,14 +289,11 @@ const useContract = () => {
       .build()
     let preparedTx = (await server.prepareTransaction(tx)) as Transaction
     let signedTx = await signTransaction(preparedTx.toXDR(), {
-      network: "futurenet",
+      network: NETWORK,
       networkPassphrase: NETWORK_PASSPHRASE,
       accountToSign: userInfo.publicKey,
     })
-    let transaction = TransactionBuilder.fromXDR(
-      signedTx,
-      NETWORK_PASSPHRASE
-    )
+    let transaction = TransactionBuilder.fromXDR(signedTx, NETWORK_PASSPHRASE)
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
