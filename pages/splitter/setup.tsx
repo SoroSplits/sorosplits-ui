@@ -5,7 +5,7 @@ import SplitterData, {
   INITIAL_DATA,
 } from "../../components/SplitterData"
 import PageHeader from "../../components/PageHeader"
-import useContract from "../../hooks/contract"
+import useContract from "../../hooks/useContract"
 import { Address } from "sorosplits-splitter"
 import toast from "react-hot-toast"
 import { useRouter } from "next/router"
@@ -17,41 +17,44 @@ export default function SetupSplitter() {
   const [data, setData] = useState<DataProps[]>(INITIAL_DATA)
 
   const createSplitter = async () => {
-    toast.loading("Creating splitter contract...")
+    try {
+      toast.loading("Creating splitter contract...")
 
-    const shares = data.map((item) => {
-      return {
-        shareholder: Address.fromString(item.shareholder),
-        share: BigInt(item.share * 100),
-      }
-    })
-
-    const contractId = await deploy()
-
-    toast.dismiss()
-    toast.success("Splitter contract deployed successfully!")
-    toast.loading("Initializing splitter contract...")
-
-    await callContract({
-      // TODO: This will either come from the deploy method
-      // or we will have a new factory contract that will deploy and init
-      contractId: contractId.toString(),
-      method: "init",
-      args: {
-        // TODO: This will come from the wallet
-        admin: "GBOAWTUJNSI5VKE3MDGY32LJF723OCQ42XYLNJWXDHCJKRZSFV3PKKMY",
-        shares,
-      },
-    })
-
-    toast.dismiss()
-    toast.success(
-      "Splitter contract initialized successfully! Navigating to contract page..."
-    )
-
-    setTimeout(() => {
-      push(`/splitter/search?contractId=${contractId}`)
-    }, 2000)
+      const shares = data.map((item) => {
+        return {
+          shareholder: Address.fromString(item.shareholder),
+          share: BigInt(item.share * 100),
+        }
+      })
+  
+      const contractId = await deploy()
+  
+      toast.dismiss()
+      toast.success("Splitter contract deployed successfully!")
+      toast.loading("Initializing splitter contract...")
+  
+      await callContract({
+        contractId: contractId.toString(),
+        method: "init",
+        args: {
+          // TODO: This will come from the wallet
+          admin: "GBOAWTUJNSI5VKE3MDGY32LJF723OCQ42XYLNJWXDHCJKRZSFV3PKKMY",
+          shares,
+        },
+      })
+  
+      toast.dismiss()
+      toast.success(
+        "Splitter contract initialized successfully! Navigating to contract page..."
+      )
+  
+      setTimeout(() => {
+        push(`/splitter/search?contractId=${contractId}`)
+      }, 2000)
+    } catch (error: any) {
+      toast.dismiss()
+      toast.error(error.message)
+    }
   }
 
   return (

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react"
 import {
   isConnected,
   isAllowed,
@@ -11,7 +10,6 @@ import {
   Contract as SplitterContract,
 } from "sorosplits-splitter"
 import { randomBytes } from "crypto"
-
 import {
   Address,
   Operation,
@@ -24,9 +22,11 @@ import {
   Contract,
   nativeToScVal,
   StrKey,
+  scValToNative,
 } from "soroban-client"
 import ba from "../utils/binascii"
 import { hexToByte } from "../utils/hexToByte"
+import { DataProps } from "../components/SplitterData"
 
 // const TESTNET_RPC = "https://soroban-testnet.stellar.org:443"
 const FUTURENET_RPC = "https://rpc-futurenet.stellar.org"
@@ -37,6 +37,8 @@ type ContractMethod =
   | "distributeTokens"
   | "updateShares"
   | "lock_contract"
+
+type QueryMethod = "list_shares" | "get_config"
 
 interface CallContractArgs<T extends ContractMethod> {
   contractId: string
@@ -55,6 +57,22 @@ type MethodArgs<T extends ContractMethod> = T extends "init"
   ? { shares: ShareDataKey[] }
   : T extends "lock_contract"
   ? {}
+  : never
+
+interface QueryContractArgs {
+  contractId: string
+  method: QueryMethod
+}
+
+export interface ContractConfigResult {
+  admin: string
+  mutable: boolean
+}
+
+type QueryContractResult<T extends QueryMethod> = T extends "get_config"
+  ? ContractConfigResult
+  : T extends "list_shares"
+  ? DataProps[]
   : never
 
 const useContract = () => {
@@ -147,7 +165,6 @@ const useContract = () => {
       confirmation.status === SorobanRpc.GetTransactionStatus.SUCCESS &&
       confirmation.resultMetaXdr
     ) {
-      console.log(confirmation.resultMetaXdr.toXDR("base64"))
       const buff = Buffer.from(
         confirmation.resultMetaXdr.toXDR("base64"),
         "base64"
@@ -210,30 +227,46 @@ const useContract = () => {
     // if (res.isErr()) throw new Error(res.unwrapErr().message)
   }
 
-  const lockContract = async (contractId: string) => {
+  const queryContract = async <T extends QueryMethod>({
+    contractId,
+    method,
+  }: QueryContractArgs): Promise<QueryContractResult<T>> => {
     await checkFreighterConnection()
-    // const contract = getContract(contractId)
 
-    // const res = await contract.lockContract()
-    // if (res.isErr()) throw new Error(res.unwrapErr().message)
-  }
+    const server = new Server(RPC_URL)
+    const userInfo = await getUserInfo()
+    const txBuilder = await initTxBuilder(userInfo.publicKey, server)
+    const contract = new Contract(contractId)
 
-  const listShares = async (contractId: string) => {
-    await checkFreighterConnection()
-    const contract = getSplitterContract(contractId)
+    let operation: xdr.Operation<Operation>
 
-    const res = await contract.listShares()
-    if (res.isOk()) return res.unwrap()
-    else throw new Error(res.unwrapErr().message)
-  }
+    switch (method) {
+      case "list_shares":
+        operation = contract.call(method, ...[])
+        break
+      case "get_config":
+        operation = contract.call(method, ...[])
+        break
+      default:
+        throw new Error("Invalid query method")
+    }
 
-  const getConfig = async (contractId: string) => {
-    await checkFreighterConnection()
-    const contract = getSplitterContract(contractId)
+    let tx: Transaction = txBuilder
+      .addOperation(operation)
+      .setTimeout(TimeoutInfinite)
+      .build()
 
-    const res = await contract.getConfig()
-    if (res.isOk()) return res.unwrap()
-    else throw new Error(res.unwrapErr().message)
+    let simulatedTx = await server.simulateTransaction(tx)
+
+    if (SorobanRpc.isSimulationError(simulatedTx)) {
+      throw new Error("Simulation failed")
+    }
+    let response = simulatedTx as SorobanRpc.SimulateTransactionSuccessResponse
+
+    const scVal = response.result?.retval
+    if (!scVal) throw new Error("Return value not found")
+
+    return scValToNative(scVal)
   }
 
   const callContract = async <T extends ContractMethod>({
@@ -295,8 +328,7 @@ const useContract = () => {
   return {
     deploy,
     callContract,
-    listShares,
-    getConfig,
+    queryContract,
   }
 }
 

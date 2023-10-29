@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import Input from "../../components/Input"
-import useContract from "../../hooks/contract"
-import { ConfigDataKey } from "sorosplits-splitter"
+import useContract, { ContractConfigResult } from "../../hooks/useContract"
 import toast from "react-hot-toast"
 import SplitterData, { DataProps } from "../../components/SplitterData"
 import Button from "../../components/button"
@@ -14,9 +13,9 @@ export default function SearchSplitter() {
   const { query } = useRouter()
 
   const [contractAddress, setContractAddress] = useState("")
-  const { listShares, getConfig, callContract } = useContract()
+  const { callContract, queryContract } = useContract()
 
-  const [contractConfig, setContractConfig] = useState<ConfigDataKey>()
+  const [contractConfig, setContractConfig] = useState<ContractConfigResult>()
   const [contractShares, setContractShares] = useState<DataProps[]>()
 
   useEffect(() => {
@@ -27,34 +26,41 @@ export default function SearchSplitter() {
 
   useEffect(() => {
     const fetchContractData = setTimeout(async () => {
-      if (contractAddress === "") {
-        setContractConfig(undefined)
-        setContractShares(undefined)
-        return
-      }
-      toast.loading("Searching for Splitter contract...")
-
-      let results = await Promise.all([
-        getConfig(contractAddress),
-        listShares(contractAddress),
-      ]).catch((err) => {
-        toast.dismiss()
-        toast.error(err.message)
-      })
-
-      if (results) {
-        toast.dismiss()
-        toast.success("Found Splitter contract!")
-
-        setContractConfig(results[0])
-
-        let shareData = results[1].map((item) => {
-          return {
-            shareholder: item.shareholder.toString(),
-            share: Number(BigInt(item.share)) / 100,
-          }
+      try {
+        if (contractAddress === "") {
+          setContractConfig(undefined)
+          setContractShares(undefined)
+          return
+        }
+        toast.loading("Searching for Splitter contract...")
+  
+        let results = await Promise.all([
+          queryContract({ contractId: contractAddress, method: "get_config" }),
+          queryContract({ contractId: contractAddress, method: "list_shares" }),
+        ]).catch((err) => {
+          toast.dismiss()
+          toast.error(err.message)
         })
-        setContractShares(shareData)
+  
+        if (results) {
+          toast.dismiss()
+          toast.success("Found Splitter contract!")
+  
+          let config = results[0] as ContractConfigResult
+          setContractConfig(config)
+  
+          let shares = results[1] as DataProps[]
+          let shareData = shares.map((item) => {
+            return {
+              shareholder: item.shareholder.toString(),
+              share: Number(BigInt(item.share)) / 100,
+            }
+          })
+          setContractShares(shareData)
+        }
+      } catch (error: any) {
+        toast.dismiss()
+        toast.error(error.message)
       }
     }, 1000)
 
@@ -89,6 +95,8 @@ export default function SearchSplitter() {
         title="Search Splitter"
         subtitle="Search for a Splitter contract by entering the contract address below."
       />
+
+      <div>CCWP5OGFXQHC2VEORHRGAN6KDWRHHLBF55WPMQCE4TRRTSJ56HRVSYLA</div>
 
       <div className="flex mb-6">
         <Input

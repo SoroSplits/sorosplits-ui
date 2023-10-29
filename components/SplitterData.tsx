@@ -41,7 +41,6 @@ const SplitterData = ({
 
   const updateDataShare = (idx: number, value: string) => {
     const newData = [...data]
-    console.log(value)
     newData[idx].share = parseFloat(value)
     setData(newData)
     updateData(newData)
