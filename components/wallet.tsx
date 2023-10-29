@@ -1,16 +1,14 @@
 import { useMemo } from "react"
-import Button from "./button"
+import Button from "./Button"
 import { FiLogOut } from "react-icons/fi"
 import toast from "react-hot-toast"
+import useWallet from "../hooks/useWallet"
 
-interface WalletProps {
-  isConnected: boolean
-  walletAddress: string
-  toggleButton: () => void
-}
+const Wallet = () => {
+  const { isConnected, walletAddress, connect, disconnect } = useWallet()
 
-const Wallet = ({ isConnected, walletAddress, toggleButton }: WalletProps) => {
   const displayFirstLastChars = useMemo(() => {
+    if (!walletAddress) return ""
     const firstChars = walletAddress.slice(0, 4)
     const lastChars = walletAddress.slice(-4)
 
@@ -18,7 +16,7 @@ const Wallet = ({ isConnected, walletAddress, toggleButton }: WalletProps) => {
   }, [walletAddress])
 
   const copyAddress = () => {
-    navigator.clipboard.writeText(walletAddress)
+    navigator.clipboard.writeText(walletAddress || "")
     toast.success("Copied address to clipboard")
   }
 
@@ -32,12 +30,12 @@ const Wallet = ({ isConnected, walletAddress, toggleButton }: WalletProps) => {
           >
             {displayFirstLastChars}
           </button>
-          <button onClick={toggleButton}>
+          <button onClick={disconnect}>
             <FiLogOut color="black" size={14} />
           </button>
         </div>
       ) : (
-        <Button text="Connect Wallet" onClick={toggleButton} type="wallet" />
+        <Button text="Connect Wallet" onClick={connect} type="wallet" />
       )}
     </>
   )

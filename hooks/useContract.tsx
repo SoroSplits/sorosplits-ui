@@ -1,14 +1,7 @@
 import {
-  isConnected,
-  isAllowed,
   getUserInfo,
   signTransaction,
 } from "@stellar/freighter-api"
-import {
-  networks,
-  ShareDataKey,
-  Contract as SplitterContract,
-} from "sorosplits-splitter"
 import { randomBytes } from "crypto"
 import {
   Address,
@@ -27,10 +20,15 @@ import {
 import ba from "../utils/binascii"
 import { hexToByte } from "../utils/hexToByte"
 import { DataProps } from "../components/SplitterData"
+import useWallet from "./useWallet"
 
-// const TESTNET_RPC = "https://soroban-testnet.stellar.org:443"
 const FUTURENET_RPC = "https://rpc-futurenet.stellar.org"
+const TESTNET_RPC = "https://soroban-testnet.stellar.org:443"
 const RPC_URL = FUTURENET_RPC
+
+const FUTURENET_NETWORK_PASSPHRASE = "Test SDF Future Network ; October 2022"
+const TESTNET_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+const NETWORK_PASSPHRASE = FUTURENET_NETWORK_PASSPHRASE
 
 type ContractMethod =
   | "init"
@@ -49,12 +47,12 @@ interface CallContractArgs<T extends ContractMethod> {
 type MethodArgs<T extends ContractMethod> = T extends "init"
   ? {
       admin: string
-      shares: ShareDataKey[]
+      shares: DataProps[]
     }
   : T extends "distributeTokens"
   ? { token_address: string }
   : T extends "updateShares"
-  ? { shares: ShareDataKey[] }
+  ? { shares: DataProps[] }
   : T extends "lock_contract"
   ? {}
   : never
@@ -76,31 +74,25 @@ type QueryContractResult<T extends QueryMethod> = T extends "get_config"
   : never
 
 const useContract = () => {
+  const { isConnected, walletAddress } = useWallet()
+
   const initTxBuilder = async (publicKey: string, server: Server) => {
     const source = await server.getAccount(publicKey)
     return new TransactionBuilder(source, {
       fee: "10",
-      networkPassphrase: networks.futurenet.networkPassphrase,
+      networkPassphrase: NETWORK_PASSPHRASE,
     })
   }
 
   const checkFreighterConnection = async () => {
-    const connected = await isConnected()
-    const allowed = await isAllowed()
-    const userInfo = await getUserInfo()
-    if (!connected || !allowed) throw new Error("Freighter not connected")
-    if (userInfo.publicKey === "") throw new Error("Freighter not connected")
-  }
-
-  const getSplitterContract = (contractId: string) => {
-    return new SplitterContract({
-      contractId,
-      rpcUrl: RPC_URL,
-      networkPassphrase: networks.futurenet.networkPassphrase,
-    })
+    if (!isConnected) {
+      throw new Error("Freighter not connected")
+    }
   }
 
   const deploy = async () => {
+    await checkFreighterConnection()
+
     const server = new Server(RPC_URL)
     const userInfo = await getUserInfo()
     const account = await server.getAccount(userInfo.publicKey)
@@ -143,12 +135,12 @@ const useContract = () => {
     let preparedTx = (await server.prepareTransaction(tx)) as Transaction
     let signedTx = await signTransaction(preparedTx.toXDR(), {
       network: "futurenet",
-      networkPassphrase: networks.futurenet.networkPassphrase,
+      networkPassphrase: NETWORK_PASSPHRASE,
       accountToSign: userInfo.publicKey,
     })
     let transaction = TransactionBuilder.fromXDR(
       signedTx,
-      networks.futurenet.networkPassphrase
+      NETWORK_PASSPHRASE
     )
     let txRes = await server.sendTransaction(transaction)
 
@@ -184,13 +176,12 @@ const useContract = () => {
 
   const initOP = (
     contract: Contract,
-    admin: string,
-    shares: ShareDataKey[]
+    shares: DataProps[]
   ) => {
     return contract.call(
       "init",
       ...[
-        new Address(admin).toScVal(),
+        new Address(walletAddress || "").toScVal(),
         xdr.ScVal.scvVec(
           shares.map((item) => {
             xdr.ScVal
@@ -219,7 +210,7 @@ const useContract = () => {
     // if (res.isErr()) throw new Error(res.unwrapErr().message)
   }
 
-  const updateShares = async (contractId: string, shares: ShareDataKey[]) => {
+  const updateShares = async (contractId: string, shares: DataProps[]) => {
     await checkFreighterConnection()
     // const contract = getContract(contractId)
 
@@ -231,8 +222,6 @@ const useContract = () => {
     contractId,
     method,
   }: QueryContractArgs): Promise<QueryContractResult<T>> => {
-    await checkFreighterConnection()
-
     const server = new Server(RPC_URL)
     const userInfo = await getUserInfo()
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
@@ -285,8 +274,8 @@ const useContract = () => {
 
     switch (method) {
       case "init":
-        const { admin, shares } = args as MethodArgs<"init">
-        operation = initOP(contract, admin, shares)
+        const { shares } = args as MethodArgs<"init">
+        operation = initOP(contract, shares)
         break
       case "lock_contract":
         operation = contract.call(method, ...[])
@@ -302,12 +291,12 @@ const useContract = () => {
     let preparedTx = (await server.prepareTransaction(tx)) as Transaction
     let signedTx = await signTransaction(preparedTx.toXDR(), {
       network: "futurenet",
-      networkPassphrase: networks.futurenet.networkPassphrase,
+      networkPassphrase: NETWORK_PASSPHRASE,
       accountToSign: userInfo.publicKey,
     })
     let transaction = TransactionBuilder.fromXDR(
       signedTx,
-      networks.futurenet.networkPassphrase
+      NETWORK_PASSPHRASE
     )
     let txRes = await server.sendTransaction(transaction)
 

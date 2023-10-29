@@ -1,12 +1,12 @@
 import { useState } from "react"
-import Button from "../../components/button"
+import Button from "../../components/Button"
 import SplitterData, {
   DataProps,
   INITIAL_DATA,
 } from "../../components/SplitterData"
 import PageHeader from "../../components/PageHeader"
 import useContract from "../../hooks/useContract"
-import { Address } from "sorosplits-splitter"
+import { Address } from "soroban-client"
 import toast from "react-hot-toast"
 import { useRouter } from "next/router"
 
@@ -26,28 +26,26 @@ export default function SetupSplitter() {
           share: BigInt(item.share * 100),
         }
       })
-  
+
       const contractId = await deploy()
-  
+
       toast.dismiss()
       toast.success("Splitter contract deployed successfully!")
       toast.loading("Initializing splitter contract...")
-  
+
       await callContract({
         contractId: contractId.toString(),
         method: "init",
         args: {
-          // TODO: This will come from the wallet
-          admin: "GBOAWTUJNSI5VKE3MDGY32LJF723OCQ42XYLNJWXDHCJKRZSFV3PKKMY",
           shares,
         },
       })
-  
+
       toast.dismiss()
       toast.success(
         "Splitter contract initialized successfully! Navigating to contract page..."
       )
-  
+
       setTimeout(() => {
         push(`/splitter/search?contractId=${contractId}`)
       }, 2000)

@@ -1,5 +1,5 @@
 import { ReactNode } from "react"
-import Sidebar from "./sidebar"
+import Sidebar from "./Sidebar"
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
