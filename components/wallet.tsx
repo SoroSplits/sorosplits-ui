@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 import Button from "./Button"
 import { FiLogOut } from "react-icons/fi"
-import toast from "react-hot-toast"
 import useWallet from "../hooks/useWallet"
+import { successToast } from "../utils/toast"
 
 const Wallet = () => {
   const { isConnected, walletAddress, connect, disconnect } = useWallet()
@@ -17,7 +17,7 @@ const Wallet = () => {
 
   const copyAddress = () => {
     navigator.clipboard.writeText(walletAddress || "")
-    toast.success("Copied address to clipboard")
+    successToast("Copied address to clipboard")
   }
 
   return (

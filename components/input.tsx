@@ -28,7 +28,7 @@ const Input = ({
   const style = useMemo(() => {
     return clsx(
       "p-2 px-4 text-sm bg-transparent placeholder:text-text placeholder:text-sm outline-none",
-      small ? "w-[110px]" : "w-[360px]"
+      small ? "w-[110px]" : "w-[600px]"
     )
   }, [])
 

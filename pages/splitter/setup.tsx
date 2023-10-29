@@ -8,8 +8,9 @@ import PageHeader from "../../components/PageHeader"
 import Switch from "../../components/Switch"
 import useContract from "../../hooks/useContract"
 import { Address } from "soroban-client"
-import toast from "react-hot-toast"
 import { useRouter } from "next/router"
+import checkSplitterData from "../../utils/checkSplitterData"
+import { errorToast, loadingToast, successToast } from "../../utils/toast"
 
 export default function SetupSplitter() {
   const { push } = useRouter()
@@ -20,7 +21,9 @@ export default function SetupSplitter() {
 
   const createSplitter = async () => {
     try {
-      toast.loading("Creating splitter contract...")
+      loadingToast("Deploying Splitter contract on blockchain...")
+
+      checkSplitterData(data)
 
       const shares = data.map((item) => {
         return {
@@ -31,9 +34,10 @@ export default function SetupSplitter() {
 
       const contractId = await deploy()
 
-      toast.dismiss()
-      toast.success("Splitter contract deployed successfully!")
-      toast.loading("Initializing splitter contract...")
+      successToast("Splitter contract deployed successfully!")
+      loadingToast("Initializing Splitter contract...")
+
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       await callContract({
         contractId: contractId.toString(),
@@ -44,8 +48,7 @@ export default function SetupSplitter() {
         },
       })
 
-      toast.dismiss()
-      toast.success(
+      successToast(
         "Splitter contract initialized successfully! Navigating to contract page..."
       )
 
@@ -53,9 +56,7 @@ export default function SetupSplitter() {
         push(`/splitter/search?contractId=${contractId}`)
       }, 2000)
     } catch (error: any) {
-      toast.dismiss()
-      if (error.message) toast.error(error.message)
-      else toast.error(error)
+      errorToast(error)
     }
   }
 

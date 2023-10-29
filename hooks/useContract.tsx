@@ -36,8 +36,8 @@ const WASM_HASH =
 
 type ContractMethod =
   | "init"
-  | "distributeTokens"
-  | "updateShares"
+  | "distribute_tokens"
+  | "update_shares"
   | "lock_contract"
 
 type QueryMethod = "list_shares" | "get_config"
@@ -54,9 +54,9 @@ type MethodArgs<T extends ContractMethod> = T extends "init"
       shares: DataProps[]
       mutable: boolean
     }
-  : T extends "distributeTokens"
+  : T extends "distribute_tokens"
   ? { token_address: string }
-  : T extends "updateShares"
+  : T extends "update_shares"
   ? { shares: DataProps[] }
   : T extends "lock_contract"
   ? {}
@@ -200,6 +200,29 @@ const useContract = () => {
     )
   }
 
+  const updateSharesOP = (contract: Contract, shares: DataProps[]) => {
+    return contract.call(
+      "update_shares",
+      ...[
+        xdr.ScVal.scvVec(
+          shares.map((item) => {
+            xdr.ScVal
+            return xdr.ScVal.scvMap([
+              new xdr.ScMapEntry({
+                key: xdr.ScVal.scvSymbol("share"),
+                val: nativeToScVal(item.share, { type: "i128" }),
+              }),
+              new xdr.ScMapEntry({
+                key: xdr.ScVal.scvSymbol("shareholder"),
+                val: new Address(item.shareholder.toString()).toScVal(),
+              }),
+            ])
+          })
+        ),
+      ]
+    )
+  }
+
   const distributeTokens = async (tokenAddress: string) => {
     await checkFreighterConnection()
 
@@ -273,8 +296,12 @@ const useContract = () => {
 
     switch (method) {
       case "init":
-        const { shares, mutable } = args as MethodArgs<"init">
-        operation = initOP(contract, shares, mutable)
+        const initArgs = args as MethodArgs<"init">
+        operation = initOP(contract, initArgs.shares, initArgs.mutable)
+        break
+      case "update_shares":
+        const updateSharesArgs = args as MethodArgs<"update_shares">
+        operation = updateSharesOP(contract, updateSharesArgs.shares)
         break
       case "lock_contract":
         operation = contract.call(method, ...[])

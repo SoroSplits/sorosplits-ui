@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
 import Input from "../../components/Input"
 import useContract, { ContractConfigResult } from "../../hooks/useContract"
-import toast from "react-hot-toast"
+import { loadingToast, successToast, errorToast } from "../../utils/toast"
 import SplitterData, { DataProps } from "../../components/SplitterData"
 import Button from "../../components/Button"
 import Link from "next/link"
 import { TbExternalLink } from "react-icons/tb"
 import PageHeader from "../../components/PageHeader"
 import { useRouter } from "next/router"
+import checkSplitterData from "../../utils/checkSplitterData"
+import { Address } from "soroban-client"
 
 export default function SearchSplitter() {
   const { query } = useRouter()
@@ -32,19 +34,16 @@ export default function SearchSplitter() {
           setContractShares(undefined)
           return
         }
-        toast.loading("Searching for Splitter contract...")
+
+        loadingToast("Searching for Splitter contract...")
 
         let results = await Promise.all([
           queryContract({ contractId: contractAddress, method: "get_config" }),
           queryContract({ contractId: contractAddress, method: "list_shares" }),
-        ]).catch((err) => {
-          toast.dismiss()
-          toast.error(err.message)
-        })
+        ]).catch(errorToast)
 
         if (results) {
-          toast.dismiss()
-          toast.success("Found Splitter contract!")
+          successToast("Found Splitter contract!")
 
           let config = results[0] as ContractConfigResult
           setContractConfig(config)
@@ -59,9 +58,7 @@ export default function SearchSplitter() {
           setContractShares(shareData)
         }
       } catch (error: any) {
-        toast.dismiss()
-        if (error.message) toast.error(error.message)
-        else toast.error(error)
+        errorToast(error)
       }
     }, 1000)
 
@@ -70,7 +67,7 @@ export default function SearchSplitter() {
 
   const lockSplitter = async () => {
     try {
-      toast.loading("Locking Splitter...")
+      loadingToast("Locking Splitter...")
 
       await callContract({
         contractId: contractAddress,
@@ -78,18 +75,42 @@ export default function SearchSplitter() {
         args: {},
       })
 
-      toast.dismiss()
-      toast.success("Splitter locked!")
+      successToast("Splitter locked!")
 
       setContractConfig(Object.assign({}, contractConfig, { mutable: false }))
     } catch (error: any) {
-      toast.dismiss()
-      if (error.message) toast.error(error.message)
-      else toast.error(error)
+      errorToast(error)
     }
   }
 
-  const updateSplitter = async () => {}
+  const updateSplitter = async () => {
+    try {
+      loadingToast("Updating Splitter shareholders and shares...")
+
+      if (!contractShares) return
+
+      checkSplitterData(contractShares)
+
+      const shares = contractShares.map((item) => {
+        return {
+          shareholder: Address.fromString(item.shareholder),
+          share: BigInt(item.share * 100),
+        }
+      })
+
+      await callContract({
+        contractId: contractAddress,
+        method: "update_shares",
+        args: {
+          shares,
+        },
+      })
+
+      successToast("Shareholders and shares updated successfully!")
+    } catch (error: any) {
+      errorToast(error)
+    }
+  }
 
   return (
     <div className="flex flex-col w-full">
