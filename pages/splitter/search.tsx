@@ -86,63 +86,66 @@ export default function SearchSplitter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractAddress])
 
-  useEffect(() => {
-    const fetchTokenBalance = setTimeout(async () => {
-      try {
-        if (tokenAddress === "") {
-          setTokenInfo(undefined)
-          return
-        }
-
-        loadingToast("Fetching token information...")
-
-        let results = await Promise.all([
-          queryContract({
-            contractId: tokenAddress,
-            method: "get_token_name",
-            args: {},
-          }),
-          queryContract({
-            contractId: tokenAddress,
-            method: "get_token_symbol",
-            args: {},
-          }),
-          queryContract({
-            contractId: tokenAddress,
-            method: "get_token_decimal",
-            args: {},
-          }),
-          queryContract({
-            contractId: tokenAddress,
-            method: "get_token_balance",
-            args: { id: contractAddress },
-          }),
-        ]).catch((error) => {
-          throw new Error(error)
-        })
-
-        if (results) {
-          successToast(`Token information fetched!`)
-
-          let name = results[0] as string
-          let symbol = results[1] as string
-          let decimals = results[2] as number
-          let balance = results[3] as BigInt
-
-          setTokenInfo({
-            name,
-            symbol,
-            decimals,
-            balance,
-          })
-        }
-      } catch (error: any) {
+  const fetchTokenBalance = async () => {
+    try {
+      if (tokenAddress === "") {
         setTokenInfo(undefined)
-        errorToast(error)
+        return
       }
-    })
 
-    return () => clearTimeout(fetchTokenBalance)
+      loadingToast("Fetching token information...")
+
+      let results = await Promise.all([
+        queryContract({
+          contractId: tokenAddress,
+          method: "get_token_name",
+          args: {},
+        }),
+        queryContract({
+          contractId: tokenAddress,
+          method: "get_token_symbol",
+          args: {},
+        }),
+        queryContract({
+          contractId: tokenAddress,
+          method: "get_token_decimal",
+          args: {},
+        }),
+        queryContract({
+          contractId: tokenAddress,
+          method: "get_token_balance",
+          args: { id: contractAddress },
+        }),
+      ]).catch((error) => {
+        throw new Error(error)
+      })
+
+      if (results) {
+        successToast(`Token information fetched!`)
+
+        let name = results[0] as string
+        let symbol = results[1] as string
+        let decimals = results[2] as number
+        let balance = results[3] as BigInt
+
+        setTokenInfo({
+          name,
+          symbol,
+          decimals,
+          balance,
+        })
+      }
+    } catch (error: any) {
+      setTokenInfo(undefined)
+      errorToast(error)
+    }
+  }
+
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      await fetchTokenBalance()
+    })
+    return () => clearTimeout(timeout)
   }, [tokenAddress])
 
   const lockSplitter = async () => {
@@ -199,7 +202,38 @@ export default function SearchSplitter() {
     }
   }
 
-  const distributeTokens = async () => {}
+  const distributeTokens = async () => {
+    try {
+      setLoading(true)
+
+      if (!tokenInfo) return
+
+      loadingToast("Distributing tokens to shareholders...")
+
+      await callContract({
+        contractId: contractAddress,
+        method: "distribute_tokens",
+        args: {
+          token_address: tokenAddress,
+        },
+      })
+
+      await fetchTokenBalance()
+
+      setLoading(false)
+      successToast("Tokens distributed successfully!")
+    } catch (error) {
+      setLoading(false)
+      errorToast(error)
+    }
+  }
+
+  const displayTokenBalance = () => {
+    if (!tokenInfo) return 0
+    const balance = Number(tokenInfo.balance) / Math.pow(10, tokenInfo.decimals)
+    if (balance === 0) return 0
+    else return balance.toFixed(tokenInfo.decimals)
+  }
 
   return (
     <div className="flex flex-col w-full">
@@ -292,7 +326,7 @@ export default function SearchSplitter() {
             </div>
 
             {tokenInfo && (
-              <div className="flex flex-col gap-4 mt-4">
+              <div className="flex gap-8 mt-4">
                 <div>
                   <h3 className="text-lg font-bold">Token Name</h3>
                   <p>{tokenInfo.name}</p>
@@ -301,9 +335,7 @@ export default function SearchSplitter() {
                 <div>
                   <h3 className="text-lg font-bold">Splitter Balance</h3>
                   <p>
-                    {Number(tokenInfo.balance) /
-                      Math.pow(10, tokenInfo.decimals)}{" "}
-                    {tokenInfo.symbol}
+                    {displayTokenBalance()} {tokenInfo.symbol}
                   </p>
                 </div>
               </div>

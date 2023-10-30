@@ -342,6 +342,13 @@ const useContract = () => {
       case "lock_contract":
         operation = contract.call(method, ...[])
         break
+      case "distribute_tokens":
+        const distributeTokensArgs = args as MethodArgs<"distribute_tokens">
+        operation = contract.call(
+          method,
+          ...[new Address(distributeTokensArgs.token_address).toScVal()]
+        )
+        break
       default:
         throw new Error("Invalid method")
     }
