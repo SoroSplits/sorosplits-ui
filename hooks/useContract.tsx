@@ -18,21 +18,7 @@ import ba from "../utils/binascii"
 import { hexToByte } from "../utils/hexToByte"
 import { DataProps } from "../components/SplitterData"
 import useWallet from "./useWallet"
-
-const FUTURENET_RPC = "https://rpc-futurenet.stellar.org"
-const TESTNET_RPC = "https://soroban-testnet.stellar.org:443"
-const RPC_URL = FUTURENET_RPC
-
-const FUTURENET_NETWORK_PASSPHRASE = "Test SDF Future Network ; October 2022"
-const TESTNET_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
-const NETWORK_PASSPHRASE = FUTURENET_NETWORK_PASSPHRASE
-
-const FUTURENET_NETWORK = "futurenet"
-const TESTNET_NETWORK = "testnet"
-const NETWORK = FUTURENET_NETWORK
-
-const WASM_HASH =
-  "d743d91093fc8dfbc59db3395f70bafa0a61ea46bd21d206e52b3d4822ea5c5d"
+import { config } from "../utils/config"
 
 type ContractMethod =
   | "init"
@@ -121,7 +107,7 @@ const useContract = () => {
     const source = await server.getAccount(publicKey)
     return new TransactionBuilder(source, {
       fee: "10",
-      networkPassphrase: NETWORK_PASSPHRASE,
+      networkPassphrase: config.networkPhrase,
     })
   }
 
@@ -131,10 +117,103 @@ const useContract = () => {
     }
   }
 
+  const deployAndInit = async ({
+    shares,
+    mutable,
+  }: {
+    shares: DataProps[]
+    mutable: boolean
+  }) => {
+    await checkFreighterConnection()
+
+    const server = new Server(config.rpcUrl)
+    const userInfo = await getUserInfo()
+    const account = await server.getAccount(userInfo.publicKey)
+    const txBuilder = await initTxBuilder(userInfo.publicKey, server)
+    const contract = new Contract(config.deployerContractId)
+
+    let splitterArgs = [
+      new Address(walletAddress || "").toScVal(),
+      xdr.ScVal.scvVec(
+        shares.map((item) => {
+          xdr.ScVal
+          return xdr.ScVal.scvMap([
+            new xdr.ScMapEntry({
+              key: xdr.ScVal.scvSymbol("share"),
+              val: nativeToScVal(item.share, { type: "i128" }),
+            }),
+            new xdr.ScMapEntry({
+              key: xdr.ScVal.scvSymbol("shareholder"),
+              val: new Address(item.shareholder.toString()).toScVal(),
+            }),
+          ])
+        })
+      ),
+      xdr.ScVal.scvBool(mutable),
+    ]
+    let deployerArgs = [
+      nativeToScVal(account.accountId(), { type: "address" }),
+      nativeToScVal(
+        Buffer.from(ba.unhexlify(config.splitterWasmHash), "ascii"),
+        {
+          type: "bytes",
+        }
+      ),
+      nativeToScVal(Buffer.from(randomBytes(32)), { type: "bytes" }),
+      nativeToScVal("init", { type: "symbol" }),
+      xdr.ScVal.scvVec(splitterArgs),
+    ]
+    let operation = contract.call("deploy", ...deployerArgs)
+
+    let tx: Transaction = txBuilder
+      .addOperation(operation)
+      .setTimeout(TimeoutInfinite)
+      .build()
+    let preparedTx = (await server.prepareTransaction(tx)) as Transaction
+    let signedTx = await signTransaction(preparedTx.toXDR(), {
+      network: config.network,
+      networkPassphrase: config.networkPhrase,
+      accountToSign: userInfo.publicKey,
+    })
+    let transaction = TransactionBuilder.fromXDR(signedTx, config.networkPhrase)
+    let txRes = await server.sendTransaction(transaction)
+
+    let confirmation
+    do {
+      confirmation = await server.getTransaction(txRes.hash)
+      if (confirmation.status !== SorobanRpc.GetTransactionStatus.NOT_FOUND) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    } while (true)
+
+    if (
+      confirmation.status === SorobanRpc.GetTransactionStatus.SUCCESS &&
+      confirmation.resultMetaXdr
+    ) {
+      const buff = Buffer.from(
+        confirmation.resultMetaXdr.toXDR("base64"),
+        "base64"
+      )
+      const txMeta = xdr.TransactionMeta.fromXDR(buff)
+      const contractId =
+        txMeta
+          .v3()
+          .sorobanMeta()
+          ?.returnValue()
+          .vec()
+          ?.at(0)
+          ?.address()
+          .contractId()
+          .toString("hex") || ""
+      return StrKey.encodeContract(hexToByte(contractId))
+    } else throw new Error("Transaction failed")
+  }
+
   const deploy = async () => {
     await checkFreighterConnection()
 
-    const server = new Server(RPC_URL)
+    const server = new Server(config.rpcUrl)
     const userInfo = await getUserInfo()
     const account = await server.getAccount(userInfo.publicKey)
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
@@ -153,7 +232,7 @@ const useContract = () => {
     const createContract = new xdr.CreateContractArgs({
       contractIdPreimage: contractIdPreimage,
       executable: xdr.ContractExecutable.contractExecutableWasm(
-        Buffer.from(ba.unhexlify(WASM_HASH), "ascii")
+        Buffer.from(ba.unhexlify(config.splitterWasmHash), "ascii")
       ),
     })
 
@@ -170,11 +249,11 @@ const useContract = () => {
       .build()
     let preparedTx = (await server.prepareTransaction(tx)) as Transaction
     let signedTx = await signTransaction(preparedTx.toXDR(), {
-      network: NETWORK,
-      networkPassphrase: NETWORK_PASSPHRASE,
+      network: config.network,
+      networkPassphrase: config.networkPhrase,
       accountToSign: userInfo.publicKey,
     })
-    let transaction = TransactionBuilder.fromXDR(signedTx, NETWORK_PASSPHRASE)
+    let transaction = TransactionBuilder.fromXDR(signedTx, config.networkPhrase)
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
@@ -212,6 +291,13 @@ const useContract = () => {
     shares: DataProps[],
     mutable: boolean
   ) => {
+    console.log(
+      new Address(shares[0].shareholder.toString()).toScVal().toXDR("base64")
+    )
+    console.log(
+      new Address(shares[1].shareholder.toString()).toScVal().toXDR("base64")
+    )
+
     return contract.call(
       "init",
       ...[
@@ -264,7 +350,7 @@ const useContract = () => {
     method,
     args,
   }: QueryContractArgs<T>): Promise<QueryContractResult<T>> => {
-    const server = new Server(RPC_URL)
+    const server = new Server(config.rpcUrl)
     const userInfo = await getUserInfo()
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
     const contract = new Contract(contractId)
@@ -323,7 +409,7 @@ const useContract = () => {
   }: CallContractArgs<T>) => {
     await checkFreighterConnection()
 
-    const server = new Server(RPC_URL)
+    const server = new Server(config.rpcUrl)
     const userInfo = await getUserInfo()
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
     const contract = new Contract(contractId)
@@ -359,11 +445,11 @@ const useContract = () => {
       .build()
     let preparedTx = (await server.prepareTransaction(tx)) as Transaction
     let signedTx = await signTransaction(preparedTx.toXDR(), {
-      network: NETWORK,
-      networkPassphrase: NETWORK_PASSPHRASE,
+      network: config.network,
+      networkPassphrase: config.networkPhrase,
       accountToSign: userInfo.publicKey,
     })
-    let transaction = TransactionBuilder.fromXDR(signedTx, NETWORK_PASSPHRASE)
+    let transaction = TransactionBuilder.fromXDR(signedTx, config.networkPhrase)
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
@@ -382,6 +468,7 @@ const useContract = () => {
 
   return {
     deploy,
+    deployAndInit,
     callContract,
     queryContract,
   }
