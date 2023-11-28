@@ -20,7 +20,7 @@ export const CONFIG: Config = {
     rpcUrl: "https://rpc-futurenet.stellar.org",
     networkPhrase: "Test SDF Future Network ; October 2022",
     deployerContractId:
-      "CB7IDLFOWRDUG5B7MBY7TGWX6BPH2CP2O3N3ZCFLH4NJEU6BMGBJRIJD",
+      "CAHX7H2FI7EIJKFPSOITXPVHAERKNJU2QQSZQOFADPXX57NA47UIZNAI",
     splitterWasmHash: SPLITTER_WASM_HASH,
   },
   testnet: {
