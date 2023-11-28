@@ -25,6 +25,13 @@ const Sidebar = () => {
       <Link href="/splitter/search">
         <Button text="Search Splitter" onClick={() => {}} type="outline" />
       </Link>
+
+      <Link
+        href="https://github.com/findolor/sorosplit-contracts"
+        target="_blank"
+      >
+        <Button text="Github Repo" onClick={() => {}} type="primary" />
+      </Link>
     </div>
   )
 }
