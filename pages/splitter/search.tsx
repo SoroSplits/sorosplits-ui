@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Input from "../../components/Input"
 import useContract, {
   ContractConfigResult,
@@ -86,7 +86,7 @@ export default function SearchSplitter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractAddress])
 
-  const fetchTokenBalance = async () => {
+  const fetchTokenBalance = useCallback(async () => {
     try {
       if (tokenAddress === "") {
         setTokenInfo(undefined)
@@ -139,14 +139,14 @@ export default function SearchSplitter() {
       setTokenInfo(undefined)
       errorToast(error)
     }
-  }
+  }, [contractAddress, tokenAddress, queryContract])
 
   useEffect(() => {
     const timeout = setTimeout(async () => {
       await fetchTokenBalance()
     })
     return () => clearTimeout(timeout)
-  }, [tokenAddress])
+  }, [tokenAddress, fetchTokenBalance])
 
   const lockSplitter = async () => {
     try {

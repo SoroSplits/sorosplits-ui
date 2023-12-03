@@ -30,7 +30,7 @@ const Input = ({
       "p-2 px-4 text-sm bg-transparent placeholder:text-text placeholder:text-sm outline-none",
       small ? "w-[110px]" : "w-[600px]"
     )
-  }, [])
+  }, [small])
 
   const change = (e: ChangeEvent<HTMLInputElement>) => {
     let inputValue = e.target.value
