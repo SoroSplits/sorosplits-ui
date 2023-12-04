@@ -1,4 +1,4 @@
-interface ConfigItem {
+interface Config {
   network: string
   rpcUrl: string
   networkPhrase: string
@@ -6,30 +6,42 @@ interface ConfigItem {
   splitterWasmHash: string
 }
 
-interface Config {
-  futurenet: ConfigItem
-  testnet: ConfigItem
+const NETWORK = process.env.NETWORK || ""
+const SPLITTER_WASM_HASH = process.env.SPLITTER_WASM_HASH || ""
+const DEPLOYER_CONTRACT_ID = process.env.DEPLOYER_CONTRACT_ID || ""
+
+const getRpcUrl = () => {
+  switch (NETWORK) {
+    case "futurenet":
+      return "https://rpc-futurenet.stellar.org"
+    case "testnet":
+      return "https://soroban-testnet.stellar.org:443"
+    case "mainnet":
+      return ""
+    default:
+      return ""
+  }
 }
 
-const SPLITTER_WASM_HASH =
-  "d743d91093fc8dfbc59db3395f70bafa0a61ea46bd21d206e52b3d4822ea5c5d"
+const getNetworkPhrase = () => {
+  switch (NETWORK) {
+    case "futurenet":
+      return "Test SDF Future Network ; October 2022"
+    case "testnet":
+      return "Test SDF Network ; September 2015"
+    case "mainnet":
+      return ""
+    default:
+      return ""
+  }
+}
 
 export const CONFIG: Config = {
-  futurenet: {
-    network: "futurenet",
-    rpcUrl: "https://rpc-futurenet.stellar.org",
-    networkPhrase: "Test SDF Future Network ; October 2022",
-    deployerContractId:
-      "CAHX7H2FI7EIJKFPSOITXPVHAERKNJU2QQSZQOFADPXX57NA47UIZNAI",
-    splitterWasmHash: SPLITTER_WASM_HASH,
-  },
-  testnet: {
-    network: "testnet",
-    rpcUrl: "https://soroban-testnet.stellar.org:443",
-    networkPhrase: "Test SDF Network ; September 2015",
-    deployerContractId: "",
-    splitterWasmHash: SPLITTER_WASM_HASH,
-  },
+  network: NETWORK,
+  rpcUrl: getRpcUrl(),
+  networkPhrase: getNetworkPhrase(),
+  splitterWasmHash: SPLITTER_WASM_HASH,
+  deployerContractId: DEPLOYER_CONTRACT_ID
 }
 
-export const config = CONFIG["futurenet"]
+export const config = CONFIG
