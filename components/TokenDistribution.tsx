@@ -4,13 +4,17 @@ import useContract, { TokenResult } from "../hooks/useContract"
 import { errorToast, loadingToast, successToast } from "../utils/toast"
 import useAppStore from "../store"
 import Button from "./Button"
+import { DataProps } from "./SplitterData"
+import truncateAddress from "../utils/truncateAddress"
 
 interface TokenDistributionProps {
   splitterContractAddress: string
+  contractShares: DataProps[]
 }
 
 const TokenDistribution = ({
   splitterContractAddress,
+  contractShares,
 }: TokenDistributionProps) => {
   const { callContract, queryContract } = useContract()
   const { loading, setLoading } = useAppStore()
@@ -48,6 +52,13 @@ const TokenDistribution = ({
           method: "get_token_balance",
           args: { id: splitterContractAddress },
         }),
+        ...contractShares.map((data) =>
+          queryContract({
+            contractId: tokenAddress,
+            method: "get_token_balance",
+            args: { id: data.shareholder },
+          })
+        ),
       ]).catch((error) => {
         throw new Error(error)
       })
@@ -59,12 +70,14 @@ const TokenDistribution = ({
         let symbol = results[1] as string
         let decimals = results[2] as number
         let balance = results[3] as BigInt
+        let userBalances = results.slice(4) as BigInt[]
 
         setTokenInfo({
           name,
           symbol,
           decimals,
           balance,
+          userBalances,
         })
       }
     } catch (error: any) {
@@ -106,9 +119,9 @@ const TokenDistribution = ({
     }
   }
 
-  const displayTokenBalance = () => {
+  const displayTokenBalance = (value: BigInt) => {
     if (!tokenInfo) return 0
-    const balance = Number(tokenInfo.balance) / Math.pow(10, tokenInfo.decimals)
+    const balance = Number(value) / Math.pow(10, tokenInfo.decimals)
     if (balance === 0) return 0
     else return balance.toFixed(tokenInfo.decimals)
   }
@@ -129,7 +142,7 @@ const TokenDistribution = ({
       </div>
 
       {tokenInfo && (
-        <div className="flex gap-8 mt-4">
+        <div className="flex gap-10 mt-4">
           <div>
             <h3 className="text-lg font-bold">Token Name</h3>
             <p>{tokenInfo.name}</p>
@@ -138,9 +151,27 @@ const TokenDistribution = ({
           <div>
             <h3 className="text-lg font-bold">Splitter Balance</h3>
             <p>
-              {displayTokenBalance()} {tokenInfo.symbol}
+              {displayTokenBalance(tokenInfo.balance)} {tokenInfo.symbol}
             </p>
           </div>
+        </div>
+      )}
+
+      {tokenInfo && (
+        <div className="mt-4">
+          <div className="flex gap-10">
+            <h3 className="text-lg font-bold">Shareholder</h3>
+            <h3 className="text-lg font-bold">Token Balance</h3>
+          </div>
+          {contractShares.map((data, idx) => (
+            <div key={data.shareholder} className="flex gap-10">
+              <p className="w-[105px]">{truncateAddress(data.shareholder)}</p>
+              <p>
+                {displayTokenBalance(tokenInfo.userBalances[idx])}{" "}
+                {tokenInfo.symbol}
+              </p>
+            </div>
+          ))}
         </div>
       )}
 

@@ -211,7 +211,7 @@ export default function SearchSplitter() {
         )}
 
         {contractConfig && (
-          <TokenDistribution splitterContractAddress={contractAddress} />
+          <TokenDistribution splitterContractAddress={contractAddress} contractShares={contractShares || []} />
         )}
       </div>
     </div>

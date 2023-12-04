@@ -84,6 +84,7 @@ export interface TokenResult {
   symbol: string
   balance: BigInt
   decimals: number
+  userBalances: BigInt[]
 }
 
 type QueryContractResult<T extends QueryMethod> = T extends "get_config"
@@ -119,7 +120,7 @@ const useContract = () => {
 
   const getServer = () => {
     return new Server(config.rpcUrl, {
-      allowHttp: config.network === "testnet" || config.network === "futurenet",
+      allowHttp: config.network === "futurenet",
     })
   }
 
