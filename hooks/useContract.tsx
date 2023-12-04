@@ -117,6 +117,12 @@ const useContract = () => {
     }
   }
 
+  const getServer = () => {
+    return new Server(config.rpcUrl, {
+      allowHttp: config.network === "testnet" || config.network === "futurenet",
+    })
+  }
+
   const deployAndInit = async ({
     shares,
     mutable,
@@ -126,7 +132,7 @@ const useContract = () => {
   }) => {
     await checkFreighterConnection()
 
-    const server = new Server(config.rpcUrl)
+    const server = getServer()
     const userInfo = await getUserInfo()
     const account = await server.getAccount(userInfo.publicKey)
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
@@ -213,7 +219,7 @@ const useContract = () => {
   const deploy = async () => {
     await checkFreighterConnection()
 
-    const server = new Server(config.rpcUrl)
+    const server = getServer()
     const userInfo = await getUserInfo()
     const account = await server.getAccount(userInfo.publicKey)
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
@@ -350,7 +356,7 @@ const useContract = () => {
     method,
     args,
   }: QueryContractArgs<T>): Promise<QueryContractResult<T>> => {
-    const server = new Server(config.rpcUrl)
+    const server = getServer()
     const userInfo = await getUserInfo()
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
     const contract = new Contract(contractId)
@@ -409,7 +415,7 @@ const useContract = () => {
   }: CallContractArgs<T>) => {
     await checkFreighterConnection()
 
-    const server = new Server(config.rpcUrl)
+    const server = getServer()
     const userInfo = await getUserInfo()
     const txBuilder = await initTxBuilder(userInfo.publicKey, server)
     const contract = new Contract(contractId)
