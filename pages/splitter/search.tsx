@@ -9,7 +9,7 @@ import { TbExternalLink } from "react-icons/tb"
 import PageHeader from "../../components/PageHeader"
 import { useRouter } from "next/router"
 import checkSplitterData from "../../utils/checkSplitterData"
-import { Address } from "soroban-client"
+import { Address } from "stellar-sdk"
 import useAppStore from "../../store"
 import TokenDistribution from "../../components/TokenDistribution"
 
