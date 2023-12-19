@@ -1,4 +1,4 @@
-interface ConfigItem {
+interface Config {
   network: string
   rpcUrl: string
   networkPhrase: string
@@ -6,30 +6,12 @@ interface ConfigItem {
   splitterWasmHash: string
 }
 
-interface Config {
-  futurenet: ConfigItem
-  testnet: ConfigItem
-}
-
-const SPLITTER_WASM_HASH =
-  "d743d91093fc8dfbc59db3395f70bafa0a61ea46bd21d206e52b3d4822ea5c5d"
-
 export const CONFIG: Config = {
-  futurenet: {
-    network: "futurenet",
-    rpcUrl: "https://rpc-futurenet.stellar.org",
-    networkPhrase: "Test SDF Future Network ; October 2022",
-    deployerContractId:
-      "CAHX7H2FI7EIJKFPSOITXPVHAERKNJU2QQSZQOFADPXX57NA47UIZNAI",
-    splitterWasmHash: SPLITTER_WASM_HASH,
-  },
-  testnet: {
-    network: "testnet",
-    rpcUrl: "https://soroban-testnet.stellar.org:443",
-    networkPhrase: "Test SDF Network ; September 2015",
-    deployerContractId: "",
-    splitterWasmHash: SPLITTER_WASM_HASH,
-  },
+  network: process.env.NEXT_PUBLIC_NETWORK || "",
+  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "",
+  networkPhrase: process.env.NEXT_PUBLIC_NETWORK_PHRASE || "",
+  splitterWasmHash: process.env.NEXT_PUBLIC_SPLITTER_WASM_HASH || "",
+  deployerContractId: process.env.NEXT_PUBLIC_DEPLOYER_CONTRACT_ID || ""
 }
 
-export const config = CONFIG["futurenet"]
+export const config = CONFIG

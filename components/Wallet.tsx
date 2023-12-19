@@ -3,16 +3,13 @@ import Button from "./Button"
 import { FiLogOut } from "react-icons/fi"
 import useWallet from "../hooks/useWallet"
 import { successToast } from "../utils/toast"
+import truncateAddress from "../utils/truncateAddress"
 
 const Wallet = () => {
   const { isConnected, walletAddress, connect, disconnect } = useWallet()
 
   const displayFirstLastChars = useMemo(() => {
-    if (!walletAddress) return ""
-    const firstChars = walletAddress.slice(0, 4)
-    const lastChars = walletAddress.slice(-4)
-
-    return `${firstChars}.....${lastChars}`
+    return truncateAddress(walletAddress || "")
   }, [walletAddress])
 
   const copyAddress = () => {
