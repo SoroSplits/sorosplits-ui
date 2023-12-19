@@ -3,7 +3,6 @@ import { randomBytes } from "crypto"
 import {
   Address,
   Operation,
-  Server,
   SorobanRpc,
   TimeoutInfinite,
   Transaction,
@@ -13,7 +12,7 @@ import {
   nativeToScVal,
   StrKey,
   scValToNative,
-} from "soroban-client"
+} from "stellar-sdk"
 import ba from "../utils/binascii"
 import { hexToByte } from "../utils/hexToByte"
 import { DataProps } from "../components/SplitterData"
@@ -104,10 +103,10 @@ type QueryContractResult<T extends QueryMethod> = T extends "get_config"
 const useContract = () => {
   const { isConnected, walletAddress } = useWallet()
 
-  const initTxBuilder = async (publicKey: string, server: Server) => {
+  const initTxBuilder = async (publicKey: string, server: SorobanRpc.Server) => {
     const source = await server.getAccount(publicKey)
     return new TransactionBuilder(source, {
-      fee: "10",
+      fee: "1000000",
       networkPassphrase: config.networkPhrase,
     })
   }
@@ -119,8 +118,8 @@ const useContract = () => {
   }
 
   const getServer = () => {
-    return new Server(config.rpcUrl, {
-      allowHttp: config.network === "futurenet",
+    return new SorobanRpc.Server(config.rpcUrl, {
+      allowHttp: process.env.NODE_ENV !== "production",
     })
   }
 
@@ -176,7 +175,7 @@ const useContract = () => {
       .addOperation(operation)
       .setTimeout(TimeoutInfinite)
       .build()
-    let preparedTx = (await server.prepareTransaction(tx)) as Transaction
+    let preparedTx = await server.prepareTransaction(tx)
     let signedTx = await signTransaction(preparedTx.toXDR(), {
       network: config.network,
       networkPassphrase: config.networkPhrase,
@@ -186,16 +185,21 @@ const useContract = () => {
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
+    let tries = 0
     do {
+      if (tries > 5) {
+        throw new Error("Transaction failed")
+      }
       confirmation = await server.getTransaction(txRes.hash)
-      if (confirmation.status !== SorobanRpc.GetTransactionStatus.NOT_FOUND) {
+      if (confirmation.status !== SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
         break
       }
       await new Promise((resolve) => setTimeout(resolve, 1000))
+      tries++
     } while (true)
 
     if (
-      confirmation.status === SorobanRpc.GetTransactionStatus.SUCCESS &&
+      confirmation.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS &&
       confirmation.resultMetaXdr
     ) {
       const buff = Buffer.from(
@@ -264,16 +268,21 @@ const useContract = () => {
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
+    let tries = 0
     do {
+      if (tries > 5) {
+        throw new Error("Transaction failed")
+      }
       confirmation = await server.getTransaction(txRes.hash)
-      if (confirmation.status !== SorobanRpc.GetTransactionStatus.NOT_FOUND) {
+      if (confirmation.status !== SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
         break
       }
       await new Promise((resolve) => setTimeout(resolve, 1000))
+      tries++
     } while (true)
 
     if (
-      confirmation.status === SorobanRpc.GetTransactionStatus.SUCCESS &&
+      confirmation.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS &&
       confirmation.resultMetaXdr
     ) {
       const buff = Buffer.from(
@@ -298,13 +307,6 @@ const useContract = () => {
     shares: DataProps[],
     mutable: boolean
   ) => {
-    console.log(
-      new Address(shares[0].shareholder.toString()).toScVal().toXDR("base64")
-    )
-    console.log(
-      new Address(shares[1].shareholder.toString()).toScVal().toXDR("base64")
-    )
-
     return contract.call(
       "init",
       ...[
@@ -398,10 +400,10 @@ const useContract = () => {
 
     let simulatedTx = await server.simulateTransaction(tx)
 
-    if (SorobanRpc.isSimulationError(simulatedTx)) {
-      throw new Error("Simulation failed")
+    if (SorobanRpc.Api.isSimulationError(simulatedTx)) {
+    throw new Error("Query failed")
     }
-    let response = simulatedTx as SorobanRpc.SimulateTransactionSuccessResponse
+    let response = simulatedTx as SorobanRpc.Api.SimulateTransactionSuccessResponse
 
     const scVal = response.result?.retval
     if (!scVal) throw new Error("Return value not found")
@@ -457,18 +459,19 @@ const useContract = () => {
       accountToSign: userInfo.publicKey,
     })
     let transaction = TransactionBuilder.fromXDR(signedTx, config.networkPhrase)
+
     let txRes = await server.sendTransaction(transaction)
 
     let confirmation
     do {
       confirmation = await server.getTransaction(txRes.hash)
-      if (confirmation.status !== SorobanRpc.GetTransactionStatus.NOT_FOUND) {
+      if (confirmation.status !== SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
         break
       }
       await new Promise((resolve) => setTimeout(resolve, 1000))
     } while (true)
 
-    if (confirmation.status === SorobanRpc.GetTransactionStatus.FAILED) {
+    if (confirmation.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
       throw new Error("Transaction failed")
     }
   }
