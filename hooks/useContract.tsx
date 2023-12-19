@@ -187,7 +187,7 @@ const useContract = () => {
     let confirmation
     let tries = 0
     do {
-      if (tries > 5) {
+      if (tries > 10) {
         throw new Error("Transaction failed")
       }
       confirmation = await server.getTransaction(txRes.hash)
@@ -270,7 +270,7 @@ const useContract = () => {
     let confirmation
     let tries = 0
     do {
-      if (tries > 5) {
+      if (tries > 10) {
         throw new Error("Transaction failed")
       }
       confirmation = await server.getTransaction(txRes.hash)
