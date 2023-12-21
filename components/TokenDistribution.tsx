@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
 import Input from "./Input"
-import useContract, { TokenResult } from "../hooks/useContract"
+import useTokenContract from "../hooks/contracts/useToken"
 import { errorToast, loadingToast, successToast } from "../utils/toast"
 import useAppStore from "../store"
 import Button from "./Button"
 import { DataProps } from "./SplitterData"
 import truncateAddress from "../utils/truncateAddress"
+import useSplitterContract from "../hooks/contracts/useSplitter"
+import { TokenResult } from "../contracts/Token"
 
 interface TokenDistributionProps {
   splitterContractAddress: string
@@ -16,7 +18,8 @@ const TokenDistribution = ({
   splitterContractAddress,
   contractShares,
 }: TokenDistributionProps) => {
-  const { callContract, queryContract } = useContract()
+  const splitterContract = useSplitterContract()
+  const tokenContract = useTokenContract()
   const { loading, setLoading } = useAppStore()
 
   const [tokenAddress, setTokenAddress] = useState("")
@@ -32,28 +35,28 @@ const TokenDistribution = ({
       loadingToast("Fetching token information...")
 
       let results = await Promise.all([
-        queryContract({
+        tokenContract.query({
           contractId: tokenAddress,
           method: "get_token_name",
           args: {},
         }),
-        queryContract({
+        tokenContract.query({
           contractId: tokenAddress,
           method: "get_token_symbol",
           args: {},
         }),
-        queryContract({
+        tokenContract.query({
           contractId: tokenAddress,
           method: "get_token_decimal",
           args: {},
         }),
-        queryContract({
+        tokenContract.query({
           contractId: tokenAddress,
           method: "get_token_balance",
           args: { id: splitterContractAddress },
         }),
         ...contractShares.map((data) =>
-          queryContract({
+          tokenContract.query({
             contractId: tokenAddress,
             method: "get_token_balance",
             args: { id: data.shareholder },
@@ -101,7 +104,7 @@ const TokenDistribution = ({
 
       loadingToast("Distributing tokens to shareholders...")
 
-      await callContract({
+      await splitterContract.call({
         contractId: splitterContractAddress,
         method: "distribute_tokens",
         args: {

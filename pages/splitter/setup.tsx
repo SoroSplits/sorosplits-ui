@@ -6,64 +6,19 @@ import SplitterData, {
 } from "../../components/SplitterData"
 import PageHeader from "../../components/PageHeader"
 import Switch from "../../components/Switch"
-import useContract from "../../hooks/useContract"
 import { useRouter } from "next/router"
 import checkSplitterData from "../../utils/checkSplitterData"
 import { errorToast, loadingToast, successToast } from "../../utils/toast"
 import useAppStore from "../../store"
+import useSplitterContract from "../../hooks/contracts/useSplitter"
 
 export default function SetupSplitter() {
   const { push } = useRouter()
-  const { deployAndInit } = useContract()
+  const splitterContract = useSplitterContract()
   const { loading, setLoading } = useAppStore()
 
   const [data, setData] = useState<DataProps[]>(INITIAL_DATA)
   const [mutable, setMutable] = useState<boolean>(false)
-
-  // const createSplitter = async () => {
-  //   try {
-  //     setLoading(true)
-
-  //     checkSplitterData(data)
-
-  //     loadingToast("Deploying Splitter contract on blockchain...")
-
-  //     const shares = data.map((item) => {
-  //       return {
-  //         shareholder: Address.fromString(item.shareholder),
-  //         share: BigInt(item.share * 100),
-  //       }
-  //     })
-
-  //     const contractId = await deploy()
-
-  //     successToast("Splitter contract deployed successfully!")
-  //     loadingToast("Initializing Splitter contract...")
-
-  //     await new Promise((resolve) => setTimeout(resolve, 2000))
-
-  //     await callContract({
-  //       contractId: contractId.toString(),
-  //       method: "init",
-  //       args: {
-  //         shares,
-  //         mutable,
-  //       },
-  //     })
-
-  //     setLoading(false)
-  //     successToast(
-  //       "Splitter contract initialized successfully! Navigating to contract page..."
-  //     )
-
-  //     setTimeout(() => {
-  //       push(`/splitter/search?contractId=${contractId}`)
-  //     }, 2000)
-  //   } catch (error: any) {
-  //     setLoading(false)
-  //     errorToast(error)
-  //   }
-  // }
 
   const deployAndInitSplitter = async () => {
     try {
@@ -73,7 +28,7 @@ export default function SetupSplitter() {
 
       loadingToast("Creating your Splitter contract...")
 
-      let contractId = await deployAndInit({
+      let contractId = await splitterContract.deployAndInit({
         shares: data.map((item) => {
           return {
             ...item,
