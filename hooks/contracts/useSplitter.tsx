@@ -11,7 +11,7 @@ import SplitterContract, {
 
 const useSplitterContract = () => {
   const { isConnected, walletAddress } = useWallet()
-console.log(isConnected)
+
   const [splitterContract, setSplitterContract] = useState<SplitterContract>(
     new SplitterContract("")
   )
