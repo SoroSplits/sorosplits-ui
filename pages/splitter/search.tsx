@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import Input from "../../components/Input"
-import useContract, { ContractConfigResult } from "../../hooks/useContract"
+import useSplitterContract from "../../hooks/contracts/useSplitter"
 import { loadingToast, successToast, errorToast } from "../../utils/toast"
 import SplitterData, { DataProps } from "../../components/SplitterData"
 import Button from "../../components/Button"
@@ -12,11 +12,12 @@ import checkSplitterData from "../../utils/checkSplitterData"
 import { Address } from "stellar-sdk"
 import useAppStore from "../../store"
 import TokenDistribution from "../../components/TokenDistribution"
+import { ContractConfigResult } from "../../contracts/Splitter"
 
 export default function SearchSplitter() {
   const { query } = useRouter()
-  const { callContract, queryContract } = useContract()
   const { loading, setLoading } = useAppStore()
+  const splitterContract = useSplitterContract()
 
   const [contractAddress, setContractAddress] = useState("")
 
@@ -41,12 +42,12 @@ export default function SearchSplitter() {
         loadingToast("Searching for Splitter contract...")
 
         let results = await Promise.all([
-          queryContract({
+          splitterContract.query({
             contractId: contractAddress,
             method: "get_config",
             args: {},
           }),
-          queryContract({
+          splitterContract.query({
             contractId: contractAddress,
             method: "list_shares",
             args: {},
@@ -87,7 +88,7 @@ export default function SearchSplitter() {
 
       loadingToast("Locking Splitter for updates...")
 
-      await callContract({
+      await splitterContract.call({
         contractId: contractAddress,
         method: "lock_contract",
         args: {},
@@ -119,7 +120,7 @@ export default function SearchSplitter() {
         }
       })
 
-      await callContract({
+      await splitterContract.call({
         contractId: contractAddress,
         method: "update_shares",
         args: {
@@ -211,7 +212,10 @@ export default function SearchSplitter() {
         )}
 
         {contractConfig && (
-          <TokenDistribution splitterContractAddress={contractAddress} contractShares={contractShares || []} />
+          <TokenDistribution
+            splitterContractAddress={contractAddress}
+            contractShares={contractShares || []}
+          />
         )}
       </div>
     </div>
