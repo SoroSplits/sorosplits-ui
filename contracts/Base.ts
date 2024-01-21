@@ -63,7 +63,7 @@ class BaseContract {
     let tries = 0
 
     do {
-      if (tries > 10) {
+      if (tries > 20) {
         throw new Error("Transaction failed")
       }
 
@@ -93,7 +93,7 @@ class BaseContract {
     const server = this.getServer()
 
     const transactionResponse = await this.sendTransaction(server, operation)
-
+    console.log(transactionResponse)
     return this.getTransaction(server, transactionResponse)
   }
 
